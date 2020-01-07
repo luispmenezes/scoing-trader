@@ -6,18 +6,18 @@ import (
 )
 
 type ExchangeData struct {
-	OpenTime     time.Time
-	OpenValue    float64
-	High         float64
-	Low          float64
-	CloseValue   float64
-	Volume       float64
-	QuoteAverage float64
-	Trades       int
-	TbBaseAvg    float64
-	TbQuoteAvg   float64
-	Ma5          float64
-	Ma10         float64
+	OpenTime     time.Time `json:"open_time"`
+	OpenValue    float64   `json:"open_value"`
+	High         float64   `json:"high"`
+	Low          float64   `json:"low"`
+	CloseValue   float64   `json:"close_value"`
+	Volume       float64   `json:"volume"`
+	QuoteAverage float64   `json:"quote_asset_volume"`
+	Trades       int       `json:"trades"`
+	TbBaseAvg    float64   `json:"taker_buy_base_asset_volume"`
+	TbQuoteAvg   float64   `json:"taker_buy_quote_asset_volume"`
+	Ma5          float64   `json:"ma5"`
+	Ma10         float64   `json:"ma10"`
 }
 
 func NewExchangeFromSlice(slice []string) *ExchangeData {

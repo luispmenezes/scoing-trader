@@ -11,14 +11,14 @@ var logFilePath = "trader.log"
 var logToFile = false
 var evolution = true
 
-var coinCSVs = map[string]string{"BTCUSDT":"/home/menezes/Documents/training-BTCUSDT.csv"}
+var coinCSVs = map[string]string{"BTCUSDT": "/home/menezes/Documents/training-BTCUSDT.csv"}
 
 func main() {
 
 	var dateStart = time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC)
 
-	if logToFile{
-		var _,err = os.Stat(logFilePath)
+	if logToFile {
+		var _, err = os.Stat(logFilePath)
 		if !os.IsNotExist(err) {
 			os.Remove(logFilePath)
 		}
@@ -28,10 +28,10 @@ func main() {
 		}
 		log.SetOutput(logFile)
 	}
-	trader.SetupEnvironment(dateStart,coinCSVs)
-	if evolution{
+	trader.SetupEnvironment(dateStart, coinCSVs, true)
+	if evolution {
 		trader.RunEvolution()
-	}else {
+	} else {
 		trader.RunSingleSim()
 	}
 }
