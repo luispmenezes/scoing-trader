@@ -3,22 +3,22 @@ package wallet
 import "time"
 
 type SimulatedWallet struct {
-	InitialBalance       float64
-	Fee                  float64
-	Balance              float64
-	Positions            map[string]map[float64]float64
-	CoinValues           map[string]float64
+	InitialBalance     float64
+	Fee                float64
+	Balance            float64
+	Positions          map[string]map[float64]float64
+	CoinValues         map[string]float64
 	StatsDailyNetWorth []float64
 }
 
 func NewSimulatedWallet(initialBalance float64, fee float64) *SimulatedWallet {
 	return &SimulatedWallet{
-		InitialBalance:       initialBalance,
-		Fee:                  fee,
-		Balance:              initialBalance,
-		Positions:            make(map[string]map[float64]float64),
-		CoinValues:           make(map[string]float64),
-		StatsDailyNetWorth:   make([]float64, 0),
+		InitialBalance:     initialBalance,
+		Fee:                fee,
+		Balance:            initialBalance,
+		Positions:          make(map[string]map[float64]float64),
+		CoinValues:         make(map[string]float64),
+		StatsDailyNetWorth: make([]float64, 0),
 	}
 }
 
@@ -45,18 +45,24 @@ func (w *SimulatedWallet) Buy(coin string, quantity float64) {
 }
 
 func (w *SimulatedWallet) Sell(coin string, buyValue float64, quantity float64) {
-	currentValue := w.CoinValues[coin]
-	w.Balance += currentValue * quantity * (1 - w.Fee)
-	delete(w.Positions[coin], buyValue)
-	if len(w.Positions[coin]) == 0 {
-		delete(w.Positions, coin)
+	if quantity > 0 {
+		currentValue := w.CoinValues[coin]
+		w.Balance += currentValue * quantity * (1 - w.Fee)
+		delete(w.Positions[coin], buyValue)
+		if len(w.Positions[coin]) == 0 {
+			delete(w.Positions, coin)
+		}
 	}
 }
 
 func (w *SimulatedWallet) UpdateCoinValue(coin string, value float64, timestamp time.Time) {
-	w.CoinValues[coin] = value
-	if timestamp.Hour() == 23 && timestamp.Minute() == 59 {
-		w.StatsDailyNetWorth = append(w.StatsDailyNetWorth, w.NetWorth())
+	if value >= 0 {
+		w.CoinValues[coin] = value
+		if timestamp.Hour() == 23 && timestamp.Minute() == 59 {
+			w.StatsDailyNetWorth = append(w.StatsDailyNetWorth, w.NetWorth())
+		}
+	} else {
+		panic("Negative coin value")
 	}
 }
 

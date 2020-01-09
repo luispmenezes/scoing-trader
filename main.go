@@ -10,6 +10,7 @@ import (
 var logFilePath = "trader.log"
 var logToFile = false
 var evolution = true
+var liveMode = true
 
 var coinCSVs = map[string]string{"BTCUSDT": "/home/menezes/Documents/training-BTCUSDT.csv"}
 
@@ -28,10 +29,16 @@ func main() {
 		}
 		log.SetOutput(logFile)
 	}
-	trader.SetupEnvironment(dateStart, coinCSVs, true)
-	if evolution {
-		trader.RunEvolution()
+	if liveMode {
+		live := trader.NewLive("localhost", "8989", 60)
+		live.Run()
+
 	} else {
-		trader.RunSingleSim()
+		trader.SetupEnvironment(dateStart, coinCSVs, true)
+		if evolution {
+			trader.RunEvolution()
+		} else {
+			trader.RunSingleSim()
+		}
 	}
 }

@@ -6,7 +6,7 @@ import (
 )
 
 type ExchangeData struct {
-	OpenTime     time.Time `json:"open_time"`
+	OpenTime     time.Time `json:"-"`
 	OpenValue    float64   `json:"open_value"`
 	High         float64   `json:"high"`
 	Low          float64   `json:"low"`

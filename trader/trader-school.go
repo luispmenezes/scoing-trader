@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"sort"
@@ -51,17 +52,16 @@ func SetupEnvironment(dateStart time.Time, coinCSVs map[string]string, useTraine
 			if dataEntry.OpenTime.Sub(dateStart) > 0 {
 				coinData = append(coinData, dataEntry)
 
-				if !useTrainedPred {
-					predictedValue, err := strconv.ParseFloat(line[len(line)-1], 64)
-					if err != nil {
-						panic(err)
-					}
-					coinPredictions = append(coinPredictions, predictor.Prediction{
-						Timestamp:      coinData[len(coinData)-1].OpenTime,
-						Coin:           coin,
-						PredictedValue: predictedValue,
-					})
+				predictedValue, err := strconv.ParseFloat(line[len(line)-1], 64)
+				if err != nil {
+					panic(err)
 				}
+				coinPredictions = append(coinPredictions, predictor.Prediction{
+					Timestamp:      coinData[len(coinData)-1].OpenTime,
+					Coin:           coin,
+					PredictedValue: predictedValue,
+				})
+
 			}
 		}
 
@@ -78,7 +78,25 @@ func SetupEnvironment(dateStart time.Time, coinCSVs map[string]string, useTraine
 	}
 
 	if useTrainedPred {
-		predictions = GetAllPredictionFromServer("http://localhost:8989/predictor/predict", exchangeData)
+		new_predictions := GetAllPredictionFromServer("http://localhost:8989/predictor/predict", exchangeData)
+
+		if len(predictions) != len(new_predictions) {
+			panic("Fucked model predictions")
+		}
+
+		var diff = 0.0
+		var count = 0
+
+		for coin, _ := range predictions {
+			for idx := range new_predictions[coin] {
+
+				diff += math.Abs(new_predictions[coin][idx].PredictedValue - predictions[coin][idx].PredictedValue)
+				count++
+			}
+		}
+
+		log.Println(diff / float64(count))
+
 	}
 	log.Println("Locked and Loaded")
 }
@@ -154,12 +172,13 @@ func RunSingleSim() {
 	}
 	*/
 	traderConfig := trader.TraderConfig{
-		BuyThreshold:      -0.0020870252250869987,
-		IncreaseThreshold: 0.20912728469618153,
-		SellThreshold:     -0.22445850767653708,
-		MinProfit:         -0.2483787238450663,
-		MaxLoss:           -0.3337861564204875,
-		PositionSizing:    0.36877999111086635,
+		BuyThreshold:      0.3752903850331908,
+		IncreaseThreshold: -0.012730022134450653,
+		SellThreshold:     -0.19780686976755377,
+		MinProfit:         -0.7671892206551113,
+		MaxLoss:           0.11878695356092953,
+		PositionSizing:    0.06713966980593267,
+		IncreaseSizing:    -0.02473547420121364,
 	}
 
 	simulation := NewSimulation(exchangeData, predictions, traderConfig, 1000, 0.001, 0.05, true)
