@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"super-trader/trader/model"
 	"time"
 )
 
@@ -22,10 +21,8 @@ func NewLivePredictor(host string, port string, timeout int) *LivePredictor {
 	}
 }
 
-func (p *LivePredictor) Predict(coin string, data model.ExchangeData) float64 {
-	var dataArr = []model.ExchangeData{data}
-
-	requestBody, err := json.Marshal(dataArr)
+func (p *LivePredictor) Predict(coin string) Prediction {
+	requestBody, err := json.Marshal("")
 
 	if err != nil {
 		panic(err)
@@ -51,7 +48,7 @@ func (p *LivePredictor) Predict(coin string, data model.ExchangeData) float64 {
 
 	defer resp.Body.Close()
 
-	var prediction []float64
+	var prediction []Prediction
 
 	err = json.NewDecoder(resp.Body).Decode(&prediction)
 
@@ -60,4 +57,8 @@ func (p *LivePredictor) Predict(coin string, data model.ExchangeData) float64 {
 	}
 
 	return prediction[0]
+}
+
+func (p *LivePredictor) SetNextPrediction(prediction Prediction) {
+	panic("Do not use in live mode")
 }

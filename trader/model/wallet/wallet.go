@@ -10,5 +10,6 @@ type Wallet interface {
 	GetPositions(coin string) map[float64]float64
 	TotalPositionValue() float64
 	NetWorth() float64
+	CoinNetWorth(coin string) float64
 	GetDailyNetWorth() []float64
 }

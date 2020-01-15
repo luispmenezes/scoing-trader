@@ -1,31 +1,32 @@
 package trader
 
 import (
-	"super-trader/trader/model"
 	"super-trader/trader/model/predictor"
 	"super-trader/trader/model/trader"
+	"super-trader/trader/model/trader/strategies"
 	"super-trader/trader/model/wallet"
 )
 
 type Simulation struct {
-	ExchangeData map[string][]model.ExchangeData
-	Trader       trader.Trader
+	Predictions []predictor.Prediction
+	Trader      trader.Trader
 }
 
-func NewSimulation(exchangeData map[string][]model.ExchangeData, predictions map[string][]predictor.Prediction,
-	config trader.TraderConfig, initialBalance float64, fee float64, uncertainty float64, logging bool) *Simulation {
+func NewSimulation(predictions []predictor.Prediction, config trader.TraderConfig, initialBalance float64, fee float64,
+	uncertainty float64, logging bool) *Simulation {
 	return &Simulation{
-		ExchangeData: exchangeData,
+		Predictions: predictions,
 		Trader: *trader.NewTrader(config,
 			wallet.NewSimulatedWallet(initialBalance, fee),
-			predictor.NewSimulatedPredictor(predictions, uncertainty), logging),
+			predictor.NewSimulatedPredictor(uncertainty),
+			strategies.NewBasicStrategy(config)),
 	}
 }
 
-func (s *Simulation) Run() {
-	for coin, data := range s.ExchangeData {
-		for _, dataEntry := range data {
-			s.Trader.ProcessData(dataEntry, coin)
-		}
+func (sim *Simulation) Run() {
+	for _, pred := range sim.Predictions {
+		sim.Trader.Wallet.UpdateCoinValue(pred.Coin, pred.OpenValue, pred.Timestamp)
+		sim.Trader.Predictor.SetNextPrediction(pred)
+		sim.Trader.ProcessData(pred.Coin)
 	}
 }

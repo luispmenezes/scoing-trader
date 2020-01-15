@@ -7,6 +7,7 @@ import (
 	"super-trader/trader/model"
 	"super-trader/trader/model/predictor"
 	"super-trader/trader/model/trader"
+	"super-trader/trader/model/trader/strategies"
 	"super-trader/trader/model/wallet"
 	"time"
 )
@@ -23,21 +24,33 @@ const dataPath string = "/collector/data/latest/"
 var coins = []string{"BTCUSDT"}
 
 func NewLive(serverHost string, serverPort string, timeout int) *Live {
+	config := trader.TraderConfig{
+		BuyPred15Mod:    -0.6556657405359857,
+		BuyPred60Mod:    -0.10513202884384447,
+		BuyPred1440Mod:  -0.5058794369370487,
+		SellPred15Mod:   -0.020424043433659413,
+		SellPred60Mod:   0.18748561837745112,
+		SellPred1440Mod: -0.35233506379660956,
+		StopLoss:        -0.07231804326332095,
+		ProfitCap:       -0.7538757361595431,
+		BuyNWQtyMod:     -0.5126836447623637,
+		BuyQty15Mod:     -0.3115006433794979,
+		BuyQty60Mod:     -0.5659724173245452,
+		BuyQty1440Mod:   -0.24578556392780398,
+		SellPosQtyMod:   -0.6652484137333834,
+		SellQty15Mod:    -0.03482572222405813,
+		SellQty60Mod:    -0.034924346173819794,
+		SellQty1440Mod:  0.02887440999597651,
+	}
+
 	return &Live{
 		HttpClient: http.Client{Timeout: time.Duration(timeout) * time.Second},
 		ServerHost: serverHost,
 		ServerPort: serverPort,
-		Trader: *trader.NewTrader(trader.TraderConfig{
-			BuyThreshold:      0.3752903850331908,
-			IncreaseThreshold: -0.012730022134450653,
-			SellThreshold:     -0.19780686976755377,
-			MinProfit:         -0.7671892206551113,
-			MaxLoss:           0.11878695356092953,
-			PositionSizing:    0.06713966980593267,
-			IncreaseSizing:    -0.02473547420121364,
-		},
+		Trader: *trader.NewTrader(config,
 			wallet.NewSimulatedWallet(1000, 0.001),
-			predictor.NewLivePredictor(serverHost, serverPort, 60), true),
+			predictor.NewLivePredictor(serverHost, serverPort, 60),
+			strategies.NewBasicStrategy(config)),
 	}
 }
 
@@ -54,10 +67,16 @@ func (l *Live) Run() {
 				panic(err)
 			}
 
-			resp, err := l.HttpClient.Do(req)
+			var resp *http.Response
 
-			if err != nil {
-				panic(err)
+			for {
+				resp, err = l.HttpClient.Do(req)
+				if err != nil {
+					log.Println("Collector data request failed sleeping for 30 s...")
+					time.Sleep(30 * time.Second)
+				} else {
+					break
+				}
 			}
 
 			if resp.StatusCode < 200 || resp.StatusCode > 299 {
@@ -74,9 +93,7 @@ func (l *Live) Run() {
 				panic(err)
 			}
 
-			log.Println(xData)
-
-			l.Trader.ProcessData(xData[0], coin)
+			l.Trader.ProcessData(coin)
 			time.Sleep(60 * time.Second)
 		}
 	}

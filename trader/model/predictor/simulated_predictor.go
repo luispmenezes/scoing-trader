@@ -2,27 +2,34 @@ package predictor
 
 import (
 	"math/rand"
-	"super-trader/trader/model"
 )
 
 type SimulatedPredictor struct {
-	Predictions map[string][]Prediction
-	Index       int
-	Uncertainty float64
+	NextPrediction Prediction
+	Uncertainty    float64
 }
 
-func NewSimulatedPredictor(predictions map[string][]Prediction, uncertainty float64) *SimulatedPredictor {
+func NewSimulatedPredictor(uncertainty float64) *SimulatedPredictor {
 	return &SimulatedPredictor{
-		Predictions: predictions,
-		Index:       0,
-		Uncertainty: uncertainty,
+		NextPrediction: Prediction{},
+		Uncertainty:    uncertainty,
 	}
 }
 
-func (p *SimulatedPredictor) Predict(coin string, data model.ExchangeData) float64 {
-	prediction := p.Predictions[coin][p.Index].PredictedValue * p.calcError()
-	p.Index += 1
-	return prediction
+func (p *SimulatedPredictor) Predict(coin string) Prediction {
+	if coin != p.NextPrediction.Coin {
+		panic("Prediction coin: " + p.NextPrediction.Coin + " doesnt match " + coin)
+		return Prediction{}
+	} else {
+		return p.NextPrediction
+	}
+}
+
+func (p *SimulatedPredictor) SetNextPrediction(prediction Prediction) {
+	p.NextPrediction = prediction
+	p.NextPrediction.Pred15 *= p.calcError()
+	p.NextPrediction.Pred60 *= p.calcError()
+	p.NextPrediction.Pred1440 *= p.calcError()
 }
 
 func (p *SimulatedPredictor) calcError() float64 {

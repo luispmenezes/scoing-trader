@@ -91,6 +91,14 @@ func (w *SimulatedWallet) NetWorth() float64 {
 	return w.Balance + w.TotalPositionValue()
 }
 
+func (w *SimulatedWallet) CoinNetWorth(coin string) float64 {
+	totalQty := 0.0
+	for qty := range w.GetPositions(coin) {
+		totalQty += qty
+	}
+	return totalQty * w.CoinValues[coin]
+}
+
 func (w *SimulatedWallet) GetDailyNetWorth() []float64 {
 	return w.StatsDailyNetWorth
 }
