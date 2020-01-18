@@ -5,8 +5,9 @@ import (
 )
 
 type Strategy interface {
-	ComputeDecision(prediction predictor.Prediction, positions map[float64]float64, coinNetWorth float64, totalNetWorth float64) Decision
-	BuySize(prediction predictor.Prediction, coinNetWorth float64, totalNetWorth float64) float64
+	ComputeDecision(prediction predictor.Prediction, positions map[float64]float64, coinNetWorth float64,
+		totalNetWorth float64, balance float64, fee float64) Decision
+	BuySize(prediction predictor.Prediction, coinNetWorth float64, totalNetWorth float64, balance float64, fee float64) float64
 	SellSize(prediction predictor.Prediction, positionQty float64) float64
 }
 

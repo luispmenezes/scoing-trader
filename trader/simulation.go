@@ -13,13 +13,13 @@ type Simulation struct {
 }
 
 func NewSimulation(predictions []predictor.Prediction, config trader.TraderConfig, initialBalance float64, fee float64,
-	uncertainty float64, logging bool) *Simulation {
+	uncertainty float64, keepRecords bool) *Simulation {
 	return &Simulation{
 		Predictions: predictions,
 		Trader: *trader.NewTrader(config,
 			wallet.NewSimulatedWallet(initialBalance, fee),
 			predictor.NewSimulatedPredictor(uncertainty),
-			strategies.NewBasicStrategy(config)),
+			strategies.NewBasicStrategy(config), keepRecords),
 	}
 }
 

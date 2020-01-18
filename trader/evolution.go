@@ -35,7 +35,7 @@ func (evo *Evolution) Run() Specimen {
 		specimenPool = append(specimenPool,
 			Specimen{
 				Fitness: 0,
-				Config:  *trader.RandomConfig(-1, 1),
+				Config:  *trader.RandomConfig(),
 			})
 	}
 
@@ -67,7 +67,7 @@ func (evo *Evolution) breed(candidates []Specimen) []Specimen {
 
 		if rand.Float64() <= evo.MutationRate {
 			for i := 0; i < (candidates[0].Config.NumParams() / 3); i++ {
-				child.RandomizeParam(-1, 1)
+				child.RandomizeParam()
 			}
 		}
 
