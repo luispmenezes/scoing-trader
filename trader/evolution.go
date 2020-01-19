@@ -6,6 +6,7 @@ import (
 	"sort"
 	"super-trader/trader/model/predictor"
 	"super-trader/trader/model/trader"
+	"super-trader/trader/model/trader/strategies"
 	"sync"
 	"time"
 )
@@ -22,7 +23,7 @@ type Evolution struct {
 
 type Specimen struct {
 	Fitness float64
-	Config  trader.TraderConfig
+	Config  trader.StrategyConfig
 }
 
 func (evo *Evolution) Run() Specimen {
@@ -32,10 +33,13 @@ func (evo *Evolution) Run() Specimen {
 	var candidates []Specimen
 
 	for i := 0; i < evo.GenerationSize; i++ {
+		config := &strategies.BasicConfig{}
+		config.RandomFromSlices(config.ParamRanges())
+
 		specimenPool = append(specimenPool,
 			Specimen{
 				Fitness: 0,
-				Config:  *trader.RandomConfig(),
+				Config:  config,
 			})
 	}
 
@@ -44,6 +48,7 @@ func (evo *Evolution) Run() Specimen {
 		newCandidates := evo.selectCandidates(testedSpecimens, 2)
 
 		log.Printf("Generation %d Fitness: %f", i, newCandidates[0].Fitness)
+		log.Println(newCandidates[0].Config.ToSlice())
 
 		if len(candidates) == 0 || newCandidates[0].Fitness > candidates[0].Fitness {
 			candidates = newCandidates
@@ -63,10 +68,11 @@ func (evo *Evolution) breed(candidates []Specimen) []Specimen {
 	//rand.Shuffle(len(candidates), func(i, j int) { candidates[i], candidates[j] = candidates[j], candidates[i] })
 	//TODO: Permitir mais de dois candidatos
 	for i := 0; i < evo.GenerationSize; i++ {
-		child := *trader.RandomBetweenTwo(candidates[0].Config, candidates[1].Config)
+		child := &strategies.BasicConfig{}
+		child.RandomFromSlices(candidates[0].Config.ToSlice(), candidates[1].Config.ToSlice())
 
 		if rand.Float64() <= evo.MutationRate {
-			for i := 0; i < (candidates[0].Config.NumParams() / 3); i++ {
+			for i := 0; i < (child.NumParams() / 3); i++ {
 				child.RandomizeParam()
 			}
 		}

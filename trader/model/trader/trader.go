@@ -6,21 +6,21 @@ import (
 )
 
 type Trader struct {
-	Config      TraderConfig
+	Config      StrategyConfig
 	Wallet      wallet.Wallet
 	Predictor   predictor.Predictor
 	Strategy    Strategy
-	Decisions   []Decision
+	Records     []TradeRecord
 	KeepRecords bool
 }
 
-func NewTrader(config TraderConfig, wallet wallet.Wallet, predictor predictor.Predictor, strategy Strategy, keepRecords bool) *Trader {
+func NewTrader(config StrategyConfig, wallet wallet.Wallet, predictor predictor.Predictor, strategy Strategy, keepRecords bool) *Trader {
 	return &Trader{
 		Config:      config,
 		Wallet:      wallet,
 		Predictor:   predictor,
 		Strategy:    strategy,
-		Decisions:   make([]Decision, 0),
+		Records:     make([]TradeRecord, 0),
 		KeepRecords: keepRecords,
 	}
 }
@@ -31,17 +31,31 @@ func (t *Trader) ProcessData(coin string) {
 	decision := t.Strategy.ComputeDecision(prediction, t.Wallet.GetPositions(coin), t.Wallet.CoinNetWorth(coin),
 		t.Wallet.NetWorth(), t.Wallet.GetBalance(), t.Wallet.GetFee())
 
-	switch decision.EventType {
-	case BUY:
-		t.Wallet.Buy(coin, decision.Qty)
-		break
-	case SELL:
-		t.Wallet.Sell(coin, decision.Val, decision.Qty)
-		break
-	}
 	if t.KeepRecords {
 		if decision.EventType != HOLD && decision.Qty > 0 {
-			t.Decisions = append(t.Decisions, decision)
+			record := TradeRecord{
+				Timestamp:   prediction.Timestamp,
+				Coin:        coin,
+				Event:       decision.EventType,
+				Qty:         decision.Qty,
+				Value:       prediction.CloseValue,
+				Transaction: decision.Val * decision.Qty * (1 + t.Wallet.GetFee()),
+				Profit:      0,
+				NetWorth:    t.Wallet.NetWorth(),
+				Balance:     t.Wallet.GetBalance(),
+			}
+
+			if decision.EventType == PROFIT_SELL || decision.EventType == LOSS_SELL {
+				record.Profit += (prediction.CloseValue - t.Wallet.GetPositions(coin)[decision.Val]) * t.Wallet.GetFee()
+			}
+
+			t.Records = append(t.Records, record)
 		}
+	}
+
+	if decision.EventType == BUY {
+		t.Wallet.Buy(coin, decision.Qty)
+	} else if decision.EventType == PROFIT_SELL || decision.EventType == LOSS_SELL {
+		t.Wallet.Sell(coin, decision.Val, decision.Qty)
 	}
 }

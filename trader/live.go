@@ -23,20 +23,17 @@ const path string = "/predictor/latest/"
 var coins = []string{"BTCUSDT", "ETHUSDT", "BNBUSDT"}
 
 func NewLive(serverHost string, serverPort string, timeout int) *Live {
-	config := trader.TraderConfig{
-		BuyPred15Mod:   0.7220682253127355,
-		BuyPred60Mod:   0.3841515091986546,
-		BuyPred1440Mod: 0.2816511062409722,
-		StopLoss:       -0.20,
-		ProfitCap:      0.05,
-		BuyNWQtyMod:    0.7602904103196131,
-		BuyQty15Mod:    0.5404493979472732,
-		BuyQty60Mod:    0.3094901697193291,
-		BuyQty1440Mod:  -0.26127667131565757,
-		SellPosQtyMod:  -0.5784497038642875,
-		SellQty15Mod:   -0.021812453304933435,
-		SellQty60Mod:   -0.04740741550138719,
-		SellQty1440Mod: -0.025200193131760328,
+	config := &strategies.BasicConfig{
+		BuyPred15Mod:    0.2834961686425913,
+		BuyPred60Mod:    1.6494705884986156,
+		BuyPred1440Mod:  0.9858951694300432,
+		SellPred15Mod:   0.967851251083437,
+		SellPred60Mod:   0.5509856817320783,
+		SellPred1440Mod: 1.6617781406885666,
+		StopLoss:        -0.2984354025918723,
+		ProfitCap:       0.004398177584156121,
+		BuyQtyMod:       0.024064165286086042,
+		SellQtyMod:      0.9961800350218821,
 	}
 
 	return &Live{
@@ -46,7 +43,7 @@ func NewLive(serverHost string, serverPort string, timeout int) *Live {
 		Trader: *trader.NewTrader(config,
 			wallet.NewSimulatedWallet(1000, 0.001),
 			predictor.NewSimulatedPredictor(0),
-			strategies.NewBasicStrategy(config), true),
+			strategies.NewBasicStrategy(config.ToSlice()), true),
 	}
 }
 
@@ -88,17 +85,14 @@ func (l *Live) Run() {
 				panic(err)
 			}
 
-			l.Trader.Wallet.UpdateCoinValue(coin, prediction.OpenValue, prediction.Timestamp)
+			l.Trader.Wallet.UpdateCoinValue(coin, prediction.CloseValue, prediction.Timestamp)
 			l.Trader.Predictor.SetNextPrediction(prediction)
 			l.Trader.ProcessData(coin)
 
-			if len(l.Trader.Decisions) != numDecisions {
-				log.Println(l.Trader.Decisions[len(l.Trader.Decisions)-1])
-				numDecisions = len(l.Trader.Decisions)
+			if len(l.Trader.Records) != numDecisions {
+				log.Println(l.Trader.Records[len(l.Trader.Records)-1].ToString())
+				numDecisions = len(l.Trader.Records)
 			}
-
-			log.Printf("%s: %s Predictions:(%f,%f,%f) Value %f$ >> NetWorth: %f Balance: %f", prediction.Timestamp,
-				prediction.Coin, prediction.Pred15, prediction.Pred60, prediction.Pred1440, prediction.OpenValue, l.Trader.Wallet.NetWorth(), l.Trader.Wallet.GetBalance())
 		}
 		time.Sleep(60 * time.Second)
 	}

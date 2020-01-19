@@ -14,13 +14,13 @@ var server = "localhost"
 var port = "8989"
 var logToFile = false
 var evolution = false
-var liveMode = true
+var liveMode = false
 
 var coinCSVs = map[string]string{"BTCUSDT": "/home/menezes/Documents/training-BTCUSDT.csv"}
 
 func main() {
 
-	var startTime = time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC)
+	var startTime = time.Date(2019, 6, 1, 0, 0, 0, 0, time.UTC)
 	var endTime = time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	if logToFile {

@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"super-trader/trader/model"
 	"super-trader/trader/model/predictor"
-	"super-trader/trader/model/trader"
+	"super-trader/trader/model/trader/strategies"
 	"time"
 )
 
@@ -17,7 +18,7 @@ var predictions []predictor.Prediction
 
 func SetupEnvironment(startTime time.Time, endTime time.Time, useModel bool, host string, port string) {
 	if !useModel {
-		predictions = TrainingData("http://"+host+":"+port+"/aggregator/trader/BTCUSDT", startTime, endTime)
+		predictions = TrainingData("http://"+host+":"+port+"/aggregator/trader/*", startTime, endTime)
 	} else {
 		log.Println("Not Yet Implemented")
 	}
@@ -25,7 +26,7 @@ func SetupEnvironment(startTime time.Time, endTime time.Time, useModel bool, hos
 }
 
 func TrainingData(serverEndpoint string, startTime time.Time, endTime time.Time) []predictor.Prediction {
-	client := http.Client{Timeout: 60 * time.Second}
+	client := http.Client{Timeout: 120 * time.Second}
 
 	var predictions []predictor.Prediction
 
@@ -60,46 +61,50 @@ func TrainingData(serverEndpoint string, startTime time.Time, endTime time.Time)
 }
 
 func RunSingleSim() {
-	traderConfig := trader.TraderConfig{
-		BuyPred15Mod:   0.7220682253127355,
-		BuyPred60Mod:   0.3841515091986546,
-		BuyPred1440Mod: 0.2816511062409722,
-		StopLoss:       -0.20,
-		ProfitCap:      0.05,
-		BuyNWQtyMod:    0.7602904103196131,
-		BuyQty15Mod:    0.5404493979472732,
-		BuyQty60Mod:    0.3094901697193291,
-		BuyQty1440Mod:  -0.26127667131565757,
-		SellPosQtyMod:  -0.5784497038642875,
-		SellQty15Mod:   -0.021812453304933435,
-		SellQty60Mod:   -0.04740741550138719,
-		SellQty1440Mod: -0.025200193131760328,
-	}
-
-	/*traderConfig := trader.TraderConfig{
-		BuyPred15Mod:   0.0903586916664672 ,
-		BuyPred60Mod:   0.4097697753727636,
-		BuyPred1440Mod: -0.5544033630234076,
-		StopLoss:       -0.17414676852980995,
-		ProfitCap:      0.08900994954754723 ,
-		BuyNWQtyMod:    -0.5651479355270681,
-		BuyQty15Mod:    -0.14977939642036098,
-		BuyQty60Mod:    0.25460656533415454,
-		BuyQty1440Mod:  0.03790286534019111,
-		SellPosQtyMod:  -0.34214099815266874 ,
-		SellQty15Mod:   0.4494399266647915,
-		SellQty60Mod:   -0.6980746285559483,
-		SellQty1440Mod: -0.5791776194000028,
+	/*conf := strategies.BasicConfig{
+		BuyPred15Mod:    1.930762732577754,
+		BuyPred60Mod:    1.7868518051534483 ,
+		BuyPred1440Mod:  0.05520080799089868,
+		SellPred15Mod:   0.243155321218021,
+		SellPred60Mod:   1.4920916149331402,
+		SellPred1440Mod: 1.1212052597086823,
+		StopLoss:        -0.19349762963747624,
+		ProfitCap:       0.17719916236926414,
+		BuyQtyMod:       0.010617832014426627,
+		SellQtyMod:      0.9962488983032237,
 	}*/
 
-	simulation := NewSimulation(predictions, traderConfig, 1000, 0.001, 0.05, true)
-	simulation.Run()
-
-	for _, dec := range simulation.Trader.Decisions {
-		log.Println(dec)
+	conf := strategies.BasicConfig{
+		BuyPred15Mod:    0.2834961686425913,
+		BuyPred60Mod:    1.6494705884986156,
+		BuyPred1440Mod:  0.9858951694300432,
+		SellPred15Mod:   0.967851251083437,
+		SellPred60Mod:   0.5509856817320783,
+		SellPred1440Mod: 1.6617781406885666,
+		StopLoss:        -0.2984354025918723,
+		ProfitCap:       0.004398177584156121,
+		BuyQtyMod:       0.024064165286086042,
+		SellQtyMod:      0.9961800350218821,
 	}
 
-	log.Println(simulation.Trader.Wallet.NetWorth())
+	var _, err = os.Stat("trader.log")
+	if !os.IsNotExist(err) {
+		os.Remove("trader.log")
+	}
+	logFile, err := os.OpenFile("trader.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		panic(err)
+	}
+	log.SetOutput(logFile)
+
+	simulation := NewSimulation(predictions, &conf, 1000, 0.001, 0.05, true)
+	simulation.Run()
+
+	fmt.Println(simulation.Trader.Wallet.NetWorth())
+
+	for _, record := range simulation.Trader.Records {
+		log.Println(record.ToString())
+	}
 }
 
 func RunEvolution() {
@@ -107,9 +112,9 @@ func RunEvolution() {
 		Predictions:    predictions,
 		InitialBalance: 1000,
 		Fee:            0.001,
-		Uncertainty:    0.03,
-		GenerationSize: 500,
-		NumGenerations: 10,
+		Uncertainty:    0.05,
+		GenerationSize: 200,
+		NumGenerations: 5,
 		MutationRate:   0.4,
 	}
 
@@ -117,8 +122,19 @@ func RunEvolution() {
 
 	result := evo.Run()
 
-	log.Println(result)
+	log.Println(result.Fitness)
+	log.Println(result.Config.ToSlice())
 	log.Println("Running single to validate...")
+
+	var _, err = os.Stat("trader.log")
+	if !os.IsNotExist(err) {
+		os.Remove("trader.log")
+	}
+	logFile, err := os.OpenFile("trader.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		panic(err)
+	}
+	log.SetOutput(logFile)
 
 	simulation := NewSimulation(predictions, result.Config, 1000, 0.001, 0, true)
 	simulation.Run()
