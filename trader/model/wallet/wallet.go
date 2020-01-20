@@ -12,4 +12,5 @@ type Wallet interface {
 	TotalPositionValue() float64
 	NetWorth() float64
 	CoinNetWorth(coin string) float64
+	ToString() string
 }

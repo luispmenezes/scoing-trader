@@ -46,11 +46,13 @@ type TradeRecord struct {
 	Value       float64
 	Transaction float64
 	Profit      float64
-	NetWorth    float64
-	Balance     float64
 }
 
 func (t *TradeRecord) ToString() string {
-	return fmt.Sprintf("%s : %s (%s) Qty:%f Value%f Trans:%f Profit: %f NW:%f Balance:%f", t.Timestamp, t.Coin,
-		t.Event, t.Qty, t.Value, t.Transaction, t.Profit, t.NetWorth, t.Balance)
+	strRecord := fmt.Sprintf("## %s : (%s) - %s -- Qty:%f Value:%f$ Trans:%f$", t.Timestamp, t.Event, t.Coin,
+		t.Qty, t.Value, t.Transaction)
+	if t.Event != BUY {
+		strRecord += fmt.Sprintf(" Profit: %f$", t.Profit)
+	}
+	return strRecord
 }

@@ -57,33 +57,22 @@ func TrainingData(serverEndpoint string, startTime time.Time, endTime time.Time)
 		panic(err)
 	}
 
+	log.Printf("Obtained %d predictions from server...", len(predictions))
+
 	return predictions
 }
 
 func RunSingleSim() {
-	/*conf := strategies.BasicConfig{
-		BuyPred15Mod:    1.930762732577754,
-		BuyPred60Mod:    1.7868518051534483 ,
-		BuyPred1440Mod:  0.05520080799089868,
-		SellPred15Mod:   0.243155321218021,
-		SellPred60Mod:   1.4920916149331402,
-		SellPred1440Mod: 1.1212052597086823,
-		StopLoss:        -0.19349762963747624,
-		ProfitCap:       0.17719916236926414,
-		BuyQtyMod:       0.010617832014426627,
-		SellQtyMod:      0.9962488983032237,
-	}*/
-
 	conf := strategies.BasicConfig{
-		BuyPred15Mod:    0.2834961686425913,
-		BuyPred60Mod:    1.6494705884986156,
-		BuyPred1440Mod:  0.9858951694300432,
-		SellPred15Mod:   0.967851251083437,
-		SellPred60Mod:   0.5509856817320783,
-		SellPred1440Mod: 1.6617781406885666,
-		StopLoss:        -0.2984354025918723,
-		ProfitCap:       0.004398177584156121,
-		BuyQtyMod:       0.024064165286086042,
+		BuyPred15Mod:    0.40880323236069116,
+		BuyPred60Mod:    1.4454241616461232,
+		BuyPred1440Mod:  1.044787863906082,
+		SellPred15Mod:   1.1119926745396007,
+		SellPred60Mod:   1.0762199758255402,
+		SellPred1440Mod: 0.5849382153611731,
+		StopLoss:        -0.020285351376654492,
+		ProfitCap:       0.006650257809231863,
+		BuyQtyMod:       0.027574445407428833,
 		SellQtyMod:      0.9961800350218821,
 	}
 
@@ -97,7 +86,7 @@ func RunSingleSim() {
 	}
 	log.SetOutput(logFile)
 
-	simulation := NewSimulation(predictions, &conf, 1000, 0.001, 0.05, true)
+	simulation := NewSimulation(predictions, &conf, 1000, 0.001, 0.1, true)
 	simulation.Run()
 
 	fmt.Println(simulation.Trader.Wallet.NetWorth())
@@ -114,8 +103,11 @@ func RunEvolution() {
 		Fee:            0.001,
 		Uncertainty:    0.05,
 		GenerationSize: 200,
-		NumGenerations: 5,
+		NumGenerations: 10,
 		MutationRate:   0.4,
+		StartingPoint: []float64{0.40880323236069116, 1.4454241616461232, 1.044787863906082, 1.1119926745396007,
+			1.0762199758255402, 0.5849382153611731, -0.020285351376654492, 0.006650257809231863, 0.027574445407428833,
+			0.9961800350218821},
 	}
 
 	log.Println("Starting Evo...")

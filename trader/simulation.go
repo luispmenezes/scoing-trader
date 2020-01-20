@@ -1,6 +1,7 @@
 package trader
 
 import (
+	"log"
 	"super-trader/trader/model/predictor"
 	"super-trader/trader/model/trader"
 	"super-trader/trader/model/trader/strategies"
@@ -26,9 +27,19 @@ func NewSimulation(predictions []predictor.Prediction, config trader.StrategyCon
 }
 
 func (sim *Simulation) Run() {
+	numDecisions := 0
 	for _, pred := range sim.Predictions {
 		sim.Trader.Wallet.UpdateCoinValue(pred.Coin, pred.CloseValue, pred.Timestamp)
 		sim.Trader.Predictor.SetNextPrediction(pred)
 		sim.Trader.ProcessData(pred.Coin)
+
+		if sim.Logging {
+			if len(sim.Trader.Records) != numDecisions {
+				log.Println(sim.Trader.Records[len(sim.Trader.Records)-1].ToString())
+				numDecisions = len(sim.Trader.Records)
+
+				log.Printf("-- NW:%f Balance:%f", sim.Trader.Wallet.NetWorth(), sim.Trader.Wallet.GetBalance())
+			}
+		}
 	}
 }

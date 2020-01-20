@@ -19,6 +19,7 @@ type Evolution struct {
 	GenerationSize int
 	NumGenerations int
 	MutationRate   float64
+	StartingPoint  []float64
 }
 
 type Specimen struct {
@@ -33,13 +34,22 @@ func (evo *Evolution) Run() Specimen {
 	var candidates []Specimen
 
 	for i := 0; i < evo.GenerationSize; i++ {
-		config := &strategies.BasicConfig{}
-		config.RandomFromSlices(config.ParamRanges())
+		var config strategies.BasicConfig
+		if evo.StartingPoint != nil {
+			config = strategies.BasicConfig{}
+			config.FromSlice(evo.StartingPoint)
+			for j := 0; j < i; j++ {
+				config.RandomizeParam()
+			}
+		} else {
+			config = strategies.BasicConfig{}
+			config.RandomFromSlices(config.ParamRanges())
+		}
 
 		specimenPool = append(specimenPool,
 			Specimen{
 				Fitness: 0,
-				Config:  config,
+				Config:  &config,
 			})
 	}
 

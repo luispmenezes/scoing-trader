@@ -1,6 +1,9 @@
 package wallet
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type SimulatedWallet struct {
 	InitialBalance float64
@@ -96,4 +99,15 @@ func (w *SimulatedWallet) CoinNetWorth(coin string) float64 {
 		totalQty += qty
 	}
 	return totalQty * w.CoinValues[coin]
+}
+
+func (w *SimulatedWallet) ToString() string {
+	walletStr := fmt.Sprintf(">> NW:%.2f Balance:%.2f |", w.NetWorth(), w.GetBalance())
+
+	for coin, _ := range w.CoinValues {
+		walletStr += fmt.Sprintf(" %s #%d Total:%.2f(%.2f%%) |", coin, len(w.Positions), w.CoinNetWorth(coin),
+			w.CoinNetWorth(coin)/w.NetWorth()*100)
+	}
+
+	return walletStr
 }

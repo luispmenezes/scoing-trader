@@ -91,7 +91,7 @@ func (s *BasicStrategy) BuySize(prediction predictor.Prediction, coinNetWorth fl
 	maxCoinNetWorth := totalNetWorth * 0.3
 	maxTransaction := totalNetWorth * 0.05
 
-	transaction := math.Min(maxTransaction, (maxCoinNetWorth-coinNetWorth)*s.Config.BuyQtyMod)
+	transaction := math.Max(math.Min(maxTransaction, (maxCoinNetWorth-coinNetWorth)*s.Config.BuyQtyMod), 10)
 	transactionWFee := transaction * (1 + fee)
 
 	if transactionWFee < balance {

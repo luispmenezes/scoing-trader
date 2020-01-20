@@ -41,8 +41,6 @@ func (t *Trader) ProcessData(coin string) {
 				Value:       prediction.CloseValue,
 				Transaction: decision.Val * decision.Qty * (1 + t.Wallet.GetFee()),
 				Profit:      0,
-				NetWorth:    t.Wallet.NetWorth(),
-				Balance:     t.Wallet.GetBalance(),
 			}
 
 			if decision.EventType == PROFIT_SELL || decision.EventType == LOSS_SELL {

@@ -94,6 +94,7 @@ func (l *Live) Run() {
 				numDecisions = len(l.Trader.Records)
 			}
 		}
+		log.Println(l.Trader.Wallet.ToString())
 		time.Sleep(60 * time.Second)
 	}
 }
