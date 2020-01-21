@@ -44,7 +44,8 @@ func (t *Trader) ProcessData(coin string) {
 			}
 
 			if decision.EventType == PROFIT_SELL || decision.EventType == LOSS_SELL {
-				record.Profit += (prediction.CloseValue - t.Wallet.GetPositions(coin)[decision.Val]) * t.Wallet.GetFee()
+				record.Profit += (prediction.CloseValue - t.Wallet.GetPositions(coin)[decision.Val]) * decision.Qty *
+					(1 - t.Wallet.GetFee())
 			}
 
 			t.Records = append(t.Records, record)

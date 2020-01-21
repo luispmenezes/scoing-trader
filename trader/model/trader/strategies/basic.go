@@ -11,9 +11,9 @@ type BasicStrategy struct {
 }
 
 func NewBasicStrategy(slice []float64) *BasicStrategy {
-	strat := &BasicStrategy{Config: BasicConfig{}}
-	strat.Config.FromSlice(slice)
-	return strat
+	basicStrategy := &BasicStrategy{Config: BasicConfig{}}
+	basicStrategy.Config.FromSlice(slice)
+	return basicStrategy
 }
 
 func (s *BasicStrategy) ComputeDecision(prediction predictor.Prediction, positions map[float64]float64,
@@ -91,13 +91,17 @@ func (s *BasicStrategy) BuySize(prediction predictor.Prediction, coinNetWorth fl
 	maxCoinNetWorth := totalNetWorth * 0.3
 	maxTransaction := totalNetWorth * 0.05
 
-	transaction := math.Max(math.Min(maxTransaction, (maxCoinNetWorth-coinNetWorth)*s.Config.BuyQtyMod), 10)
-	transactionWFee := transaction * (1 + fee)
+	if maxCoinNetWorth-coinNetWorth >= 10 && balance >= 10*(1+fee) {
+		transaction := math.Max(10, math.Min(maxTransaction, (maxCoinNetWorth-coinNetWorth)*s.Config.BuyQtyMod))
+		transactionWFee := transaction * (1 + fee)
 
-	if transactionWFee < balance {
-		return transaction / prediction.CloseValue
+		if transactionWFee < balance {
+			return transaction / prediction.CloseValue
+		} else {
+			return balance / (prediction.CloseValue * (1 + fee))
+		}
 	} else {
-		return balance / (prediction.CloseValue * (1 + fee))
+		return 0.0
 	}
 }
 

@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"fmt"
+	"sort"
 	"time"
 )
 
@@ -104,8 +105,16 @@ func (w *SimulatedWallet) CoinNetWorth(coin string) float64 {
 func (w *SimulatedWallet) ToString() string {
 	walletStr := fmt.Sprintf(">> NW:%.2f Balance:%.2f |", w.NetWorth(), w.GetBalance())
 
+	var coinList []string
+
 	for coin, _ := range w.CoinValues {
-		walletStr += fmt.Sprintf(" %s #%d Total:%.2f(%.2f%%) |", coin, len(w.Positions), w.CoinNetWorth(coin),
+		coinList = append(coinList, coin)
+	}
+
+	sort.Strings(coinList)
+
+	for _, coin := range coinList {
+		walletStr += fmt.Sprintf(" %s #%d Total:%.2f(%.2f%%) |", coin, len(w.Positions[coin]), w.CoinNetWorth(coin),
 			w.CoinNetWorth(coin)/w.NetWorth()*100)
 	}
 
