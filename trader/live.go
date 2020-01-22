@@ -24,15 +24,15 @@ var coins = []string{"BTCUSDT", "ETHUSDT", "BNBUSDT"}
 
 func NewLive(serverHost string, serverPort string, timeout int) *Live {
 	config := &strategies.BasicConfig{
-		BuyPred15Mod:    0.40880323236069116,
-		BuyPred60Mod:    1.2434503828204961,
-		BuyPred1440Mod:  0.40822277813909175,
-		SellPred15Mod:   1.2896534389129612,
-		SellPred60Mod:   1.0965872751631665,
-		SellPred1440Mod: 0.7809285759089554,
-		StopLoss:        -0.04304173216430472,
-		ProfitCap:       0.006650257809231863,
-		BuyQtyMod:       0.059374676309544544,
+		BuyPred15Mod:    1.7964807132040863,
+		BuyPred60Mod:    1.4717291842802593,
+		BuyPred1440Mod:  0.6516761024844556,
+		SellPred15Mod:   1.7102785724218976,
+		SellPred60Mod:   2.500594466058227,
+		SellPred1440Mod: 0.8877529307313343,
+		StopLoss:        -0.003641471182833845,
+		ProfitCap:       0.019435102025411398,
+		BuyQtyMod:       0.8333981874622558,
 		SellQtyMod:      0.9961800350218821,
 	}
 

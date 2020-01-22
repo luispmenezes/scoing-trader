@@ -17,20 +17,30 @@ func NewBasicStrategy(slice []float64) *BasicStrategy {
 }
 
 func (s *BasicStrategy) ComputeDecision(prediction predictor.Prediction, positions map[float64]float64,
-	coinNetWorth float64, totalNetWorth float64, balance float64, fee float64) trader.Decision {
+	coinNetWorth float64, totalNetWorth float64, balance float64, fee float64) []trader.Decision {
+
+	var decisionArr []trader.Decision
 
 	pred15 := 0.0
 	pred60 := 0.0
 	pred1440 := 0.0
 
-	if prediction.Pred15 > 0 {
+	if prediction.Pred15 > 0.01 {
 		pred15 = 1
+	} else if prediction.Pred15 < -0.01 {
+		pred15 = -1
 	}
-	if prediction.Pred60 > 0 {
+
+	if prediction.Pred60 > 0.01 {
 		pred60 = 1
+	} else if prediction.Pred60 < -0.01 {
+		pred60 = -1
 	}
-	if prediction.Pred1440 > 0 {
+
+	if prediction.Pred1440 > 0.01 {
 		pred1440 = 1
+	} else if prediction.Pred1440 < -0.01 {
+		pred1440 = -1
 	}
 
 	if ((pred15 * s.Config.BuyPred15Mod) + (pred60 * s.Config.BuyPred60Mod) + (pred1440 * s.Config.BuyPred1440Mod)) > 2 {
@@ -41,11 +51,11 @@ func (s *BasicStrategy) ComputeDecision(prediction predictor.Prediction, positio
 			Val:       prediction.CloseValue,
 		}
 		if decision.Qty > 0 {
-			return decision
+			decisionArr = append(decisionArr, decision)
 		}
 	}
 
-	if ((pred15 * s.Config.SellPred15Mod) + (pred60 * s.Config.SellPred60Mod) + (pred1440 * s.Config.SellPred1440Mod)) > 2 {
+	if ((pred15 * s.Config.SellPred15Mod) + (pred60 * s.Config.SellPred60Mod) + (pred1440 * s.Config.SellPred1440Mod)) < -2 {
 		for val, qty := range positions {
 			currentProfit := 1 - (val / prediction.CloseValue)
 			if currentProfit < s.Config.StopLoss {
@@ -56,7 +66,7 @@ func (s *BasicStrategy) ComputeDecision(prediction predictor.Prediction, positio
 					Val:       val,
 				}
 				if decision.Qty > 0 {
-					return decision
+					decisionArr = append(decisionArr, decision)
 				}
 			}
 		}
@@ -72,17 +82,21 @@ func (s *BasicStrategy) ComputeDecision(prediction predictor.Prediction, positio
 				Val:       val,
 			}
 			if decision.Qty > 0 {
-				return decision
+				decisionArr = append(decisionArr, decision)
 			}
 		}
 	}
 
-	return trader.Decision{
-		EventType: trader.HOLD,
-		Coin:      prediction.Coin,
-		Qty:       0,
-		Val:       0,
+	if len(decisionArr) == 0 {
+		decisionArr = append(decisionArr, trader.Decision{
+			EventType: trader.HOLD,
+			Coin:      prediction.Coin,
+			Qty:       0,
+			Val:       0,
+		})
 	}
+
+	return decisionArr
 }
 
 func (s *BasicStrategy) BuySize(prediction predictor.Prediction, coinNetWorth float64, totalNetWorth float64,

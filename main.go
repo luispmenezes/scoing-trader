@@ -13,7 +13,7 @@ var logFilePath = "trader.log"
 var server = "localhost"
 var port = "8989"
 var logToFile = false
-var evolution = true
+var evolution = false
 var liveMode = true
 
 func main() {

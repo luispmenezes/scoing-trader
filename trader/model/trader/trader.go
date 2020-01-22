@@ -28,33 +28,38 @@ func NewTrader(config StrategyConfig, wallet wallet.Wallet, predictor predictor.
 func (t *Trader) ProcessData(coin string) {
 	prediction := t.Predictor.Predict(coin)
 
-	decision := t.Strategy.ComputeDecision(prediction, t.Wallet.GetPositions(coin), t.Wallet.CoinNetWorth(coin),
+	decisionArr := t.Strategy.ComputeDecision(prediction, t.Wallet.GetPositions(coin), t.Wallet.CoinNetWorth(coin),
 		t.Wallet.NetWorth(), t.Wallet.GetBalance(), t.Wallet.GetFee())
 
 	if t.KeepRecords {
-		if decision.EventType != HOLD && decision.Qty > 0 {
-			record := TradeRecord{
-				Timestamp:   prediction.Timestamp,
-				Coin:        coin,
-				Event:       decision.EventType,
-				Qty:         decision.Qty,
-				Value:       prediction.CloseValue,
-				Transaction: decision.Val * decision.Qty * (1 + t.Wallet.GetFee()),
-				Profit:      0,
-			}
+		for _, decision := range decisionArr {
+			if decision.EventType != HOLD && decision.Qty > 0 {
+				record := TradeRecord{
+					Timestamp:   prediction.Timestamp,
+					Coin:        coin,
+					Event:       decision.EventType,
+					Qty:         decision.Qty,
+					Value:       prediction.CloseValue,
+					Transaction: decision.Val * decision.Qty * (1 + t.Wallet.GetFee()),
+					Profit:      0,
+				}
 
-			if decision.EventType == PROFIT_SELL || decision.EventType == LOSS_SELL {
-				record.Profit += (prediction.CloseValue * decision.Qty * (1 - t.Wallet.GetFee())) -
+				if decision.EventType == PROFIT_SELL || decision.EventType == LOSS_SELL {
+					record.Profit += (prediction.CloseValue * decision.Qty * (1 - t.Wallet.GetFee())) -
 						(decision.Val * decision.Qty * (1 + t.Wallet.GetFee()))
-			}
+				}
 
-			t.Records = append(t.Records, record)
+				t.Records = append(t.Records, record)
+			}
 		}
 	}
 
-	if decision.EventType == BUY {
-		t.Wallet.Buy(coin, decision.Qty)
-	} else if decision.EventType == PROFIT_SELL || decision.EventType == LOSS_SELL {
-		t.Wallet.Sell(coin, decision.Val, decision.Qty)
+	for _, decision := range decisionArr {
+		if decision.EventType == BUY {
+			t.Wallet.Buy(coin, decision.Qty)
+		} else if decision.EventType == PROFIT_SELL || decision.EventType == LOSS_SELL {
+			t.Wallet.Sell(coin, decision.Val, decision.Qty)
+		}
 	}
+
 }

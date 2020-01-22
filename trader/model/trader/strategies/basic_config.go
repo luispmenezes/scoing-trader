@@ -44,22 +44,22 @@ func (c *BasicConfig) ParamRanges() ([]float64, []float64) {
 	var max = make([]float64, c.NumParams())
 	//BuyPred15Mod
 	min[0] = 0
-	max[0] = 2
+	max[0] = 3
 	//BuyPred60Mod
 	min[1] = 0
-	max[1] = 2
+	max[1] = 3
 	//BuyPred1440Mod
 	min[2] = 0
-	max[2] = 2
+	max[2] = 3
 	//SellPred15Mod
 	min[3] = 0
-	max[3] = 2
+	max[3] = 3
 	//SellPred60Mod
 	min[4] = 0
-	max[4] = 2
+	max[4] = 3
 	//SellPred1440Mod
 	min[5] = 0
-	max[5] = 2
+	max[5] = 3
 	//StopLoss
 	min[6] = -0.3
 	max[6] = 0

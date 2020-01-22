@@ -26,21 +26,18 @@ func NewSimulatedWallet(initialBalance float64, fee float64) *SimulatedWallet {
 
 func (w *SimulatedWallet) Buy(coin string, quantity float64) {
 	if quantity > 0 {
-		currentValue := w.CoinValues[coin]
-		transaction := currentValue * quantity
-		transactionFee := transaction * w.Fee
-		totalCost := transaction + transactionFee
-		if w.Balance > totalCost {
-			w.Balance -= totalCost
+		transaction := w.CoinValues[coin] * quantity * (1 + w.Fee)
+		if w.Balance > transaction {
+			w.Balance -= transaction
 			_, hasKey := w.Positions[coin]
 			if !hasKey {
 				w.Positions[coin] = make(map[float64]float64)
 			}
-			_, hasKey = w.Positions[coin][currentValue]
+			_, hasKey = w.Positions[coin][w.CoinValues[coin]]
 			if hasKey {
-				w.Positions[coin][currentValue] += quantity
+				w.Positions[coin][w.CoinValues[coin]] += quantity
 			} else {
-				w.Positions[coin][currentValue] = quantity
+				w.Positions[coin][w.CoinValues[coin]] = quantity
 			}
 		}
 	}
@@ -114,7 +111,7 @@ func (w *SimulatedWallet) ToString() string {
 	sort.Strings(coinList)
 
 	for _, coin := range coinList {
-		walletStr += fmt.Sprintf(" %s #%d Total:%.2f(%.2f%%) |", coin, len(w.Positions[coin]), w.CoinNetWorth(coin),
+		walletStr += fmt.Sprintf(" %s #%d Total:%.2f$(%.2f%%) |", coin, len(w.Positions[coin]), w.CoinNetWorth(coin),
 			w.CoinNetWorth(coin)/w.NetWorth()*100)
 	}
 
