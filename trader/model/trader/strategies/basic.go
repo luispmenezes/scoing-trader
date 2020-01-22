@@ -57,7 +57,7 @@ func (s *BasicStrategy) ComputeDecision(prediction predictor.Prediction, positio
 
 	if ((pred15 * s.Config.SellPred15Mod) + (pred60 * s.Config.SellPred60Mod) + (pred1440 * s.Config.SellPred1440Mod)) < -2 {
 		for val, qty := range positions {
-			currentProfit := 1 - (val / prediction.CloseValue)
+			currentProfit := 1 - ((val / prediction.CloseValue) * (1 - fee))
 			if currentProfit < s.Config.StopLoss {
 				decision := trader.Decision{
 					EventType: trader.LOSS_SELL,
@@ -73,7 +73,7 @@ func (s *BasicStrategy) ComputeDecision(prediction predictor.Prediction, positio
 	}
 
 	for val, qty := range positions {
-		currentProfit := 1 - (val / prediction.CloseValue)
+		currentProfit := 1 - ((val / prediction.CloseValue) * (1 - fee))
 		if currentProfit > s.Config.ProfitCap {
 			decision := trader.Decision{
 				EventType: trader.PROFIT_SELL,

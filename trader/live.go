@@ -29,10 +29,10 @@ func NewLive(serverHost string, serverPort string, timeout int) *Live {
 		BuyPred1440Mod:  0.6516761024844556,
 		SellPred15Mod:   1.7102785724218976,
 		SellPred60Mod:   2.500594466058227,
-		SellPred1440Mod: 0.8877529307313343,
+		SellPred1440Mod: 1.3906215240890492,
 		StopLoss:        -0.003641471182833845,
 		ProfitCap:       0.019435102025411398,
-		BuyQtyMod:       0.8333981874622558,
+		BuyQtyMod:       0.7791674502000079,
 		SellQtyMod:      0.9961800350218821,
 	}
 
