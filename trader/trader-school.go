@@ -90,10 +90,6 @@ func RunSingleSim() {
 	simulation.Run()
 
 	fmt.Println(simulation.Trader.Wallet.NetWorth())
-
-	for _, record := range simulation.Trader.Records {
-		log.Println(record.ToString())
-	}
 }
 
 func RunEvolution() {

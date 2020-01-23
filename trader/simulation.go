@@ -38,7 +38,7 @@ func (sim *Simulation) Run() {
 				log.Println(sim.Trader.Records[len(sim.Trader.Records)-1].ToString())
 				numDecisions = len(sim.Trader.Records)
 
-				log.Printf("-- NW:%f Balance:%f", sim.Trader.Wallet.NetWorth(), sim.Trader.Wallet.GetBalance())
+				log.Println(sim.Trader.Wallet.ToString())
 			}
 		}
 	}
