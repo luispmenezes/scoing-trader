@@ -27,9 +27,9 @@ func (p *SimulatedPredictor) Predict(coin string) Prediction {
 
 func (p *SimulatedPredictor) SetNextPrediction(prediction Prediction) {
 	p.NextPrediction = prediction
-	p.NextPrediction.Pred15 *= p.calcError()
-	p.NextPrediction.Pred60 *= p.calcError()
-	p.NextPrediction.Pred1440 *= p.calcError()
+	p.NextPrediction.Pred5 *= p.calcError()
+	p.NextPrediction.Pred10 *= p.calcError()
+	p.NextPrediction.Pred100 *= p.calcError()
 }
 
 func (p *SimulatedPredictor) calcError() float64 {

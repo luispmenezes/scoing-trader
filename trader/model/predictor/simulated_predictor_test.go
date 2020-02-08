@@ -11,23 +11,23 @@ func TestPredict(t *testing.T) {
 		Timestamp:  time.Now().UTC(),
 		Coin:       "BTCUSDT",
 		CloseValue: 0,
-		Pred15:     0,
-		Pred60:     0,
-		Pred1440:   0,
+		Pred5:      0,
+		Pred10:     0,
+		Pred100:    0,
 	}, {
 		Timestamp:  time.Now().UTC(),
 		Coin:       "ETHUSDT",
 		CloseValue: 0,
-		Pred15:     1,
-		Pred60:     1,
-		Pred1440:   1,
+		Pred5:      1,
+		Pred10:     1,
+		Pred100:    1,
 	}, {
 		Timestamp:  time.Now().UTC(),
 		Coin:       "BTCUSDT",
 		CloseValue: 0,
-		Pred15:     2,
-		Pred60:     2,
-		Pred1440:   2,
+		Pred5:      2,
+		Pred10:     2,
+		Pred100:    2,
 	}}
 
 	predictions := make(map[string][]Prediction)
@@ -36,17 +36,17 @@ func TestPredict(t *testing.T) {
 	predictor := NewSimulatedPredictor(0)
 	predictor.SetNextPrediction(coin_predictions[0])
 	pred := predictor.Predict("BTCUSDT")
-	if pred.Pred15 != 0 || pred.Pred60 != 0 || pred.Pred1440 != 0 {
+	if pred.Pred5 != 0 || pred.Pred10 != 0 || pred.Pred100 != 0 {
 		t.Error("Expected prediction=0, got ", pred)
 	}
 	predictor.SetNextPrediction(coin_predictions[1])
 	pred = predictor.Predict("ETHUSDT")
-	if pred.Pred15 != 1 || pred.Pred60 != 1 || pred.Pred1440 != 1 {
+	if pred.Pred5 != 1 || pred.Pred10 != 1 || pred.Pred100 != 1 {
 		t.Error("Expected prediction=1, got ", pred)
 	}
 	predictor.SetNextPrediction(coin_predictions[2])
 	pred = predictor.Predict("BTCUSDT")
-	if pred.Pred15 != 2 || pred.Pred60 != 2 || pred.Pred1440 != 2 {
+	if pred.Pred5 != 2 || pred.Pred10 != 2 || pred.Pred100 != 2 {
 		t.Error("Expected prediction=2, got ", pred)
 	}
 }
@@ -56,9 +56,9 @@ func TestUncertainty(t *testing.T) {
 		Timestamp:  time.Now().UTC(),
 		Coin:       "BTCUSDT",
 		CloseValue: 0,
-		Pred15:     1,
-		Pred60:     1,
-		Pred1440:   1,
+		Pred5:      1,
+		Pred10:     1,
+		Pred100:    1,
 	}}
 
 	predictions := make(map[string][]Prediction)
@@ -67,7 +67,7 @@ func TestUncertainty(t *testing.T) {
 	predictor := NewSimulatedPredictor(1)
 	predictor.SetNextPrediction(coin_predictions[0])
 	pred := predictor.Predict("BTCUSDT")
-	if pred.Pred15 < -1 || pred.Pred15 > 2 || pred.Pred60 < -1 || pred.Pred60 > 2 || pred.Pred1440 < -1 && pred.Pred1440 > 2 {
+	if pred.Pred5 < -1 || pred.Pred5 > 2 || pred.Pred10 < -1 || pred.Pred10 > 2 || pred.Pred100 < -1 && pred.Pred100 > 2 {
 		t.Error("Expected prediction between -1 and 2, got ", pred)
 	}
 }

@@ -20,20 +20,20 @@ type Live struct {
 
 const path string = "/predictor/latest/"
 
-var coins = []string{"BTCUSDT", "ETHUSDT", "BNBUSDT"}
+var coins = []string{"BTCUSDT", "ETHUSDT", "BNBUSDT", "LTCUSDT", "XRPUSDT"}
 
 func NewLive(serverHost string, serverPort string, timeout int) *Live {
 	config := &strategies.BasicConfig{
-		BuyPred15Mod:    1.7964807132040863,
-		BuyPred60Mod:    1.4717291842802593,
-		BuyPred1440Mod:  0.6516761024844556,
-		SellPred15Mod:   1.7102785724218976,
-		SellPred60Mod:   2.500594466058227,
-		SellPred1440Mod: 1.3906215240890492,
-		StopLoss:        -0.003641471182833845,
-		ProfitCap:       0.019435102025411398,
-		BuyQtyMod:       0.7791674502000079,
-		SellQtyMod:      0.9961800350218821,
+		BuyPred5Mod:    1.9642530109804408,
+		BuyPred10Mod:   0.05497421343571969,
+		BuyPred100Mod:  2.4332437134090674,
+		SellPred5Mod:   1.3637120887884517,
+		SellPred10Mod:  1.238427996702663,
+		SellPred100Mod: 2.071777991900559,
+		StopLoss:       -0.003641471182833845,
+		ProfitCap:      0.02798852232740097,
+		BuyQtyMod:      0.04766891255922648,
+		SellQtyMod:     0.9980123190092692,
 	}
 
 	return &Live{
@@ -65,7 +65,7 @@ func (l *Live) Run() {
 			for {
 				resp, err = l.HttpClient.Do(req)
 				if err != nil || resp.StatusCode < 200 || resp.StatusCode > 299 {
-					log.Println("Collector data request failed sleeping for 30 s...")
+					log.Println("Failed getting lastest prediction from server.\nSleeping for 30 s...")
 					if err == nil {
 						log.Println(resp.StatusCode)
 					}
@@ -95,6 +95,6 @@ func (l *Live) Run() {
 			}
 		}
 		log.Println(l.Trader.Wallet.ToString())
-		time.Sleep(60 * time.Second)
+		time.Sleep(120 * time.Second)
 	}
 }

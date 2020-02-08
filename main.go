@@ -36,7 +36,7 @@ func main() {
 		live := trader.NewLive(server, port, 60)
 		live.Run()
 	} else {
-		trader.SetupEnvironment(startTime, endTime, false, server, port)
+		trader.SetupEnvironment(startTime, endTime, true, server, port)
 		if evolution {
 			trader.RunEvolution()
 		} else {

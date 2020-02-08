@@ -17,15 +17,11 @@ var exchangeData map[string][]model.ExchangeData
 var predictions []predictor.Prediction
 
 func SetupEnvironment(startTime time.Time, endTime time.Time, useModel bool, host string, port string) {
-	if !useModel {
-		predictions = TrainingData("http://"+host+":"+port+"/aggregator/trader/*", startTime, endTime)
-	} else {
-		log.Println("Not Yet Implemented")
-	}
+	predictions = TrainingData("http://"+host+":"+port+"/aggregator/trader/*", startTime, endTime, useModel)
 	log.Println("Locked and Loaded")
 }
 
-func TrainingData(serverEndpoint string, startTime time.Time, endTime time.Time) []predictor.Prediction {
+func TrainingData(serverEndpoint string, startTime time.Time, endTime time.Time, use_model bool) []predictor.Prediction {
 	client := http.Client{Timeout: 120 * time.Second}
 
 	var predictions []predictor.Prediction
@@ -38,6 +34,7 @@ func TrainingData(serverEndpoint string, startTime time.Time, endTime time.Time)
 
 	req.Header.Set("start_time", fmt.Sprint(startTime.Unix()))
 	req.Header.Set("end_time", fmt.Sprint(endTime.Unix()))
+	req.Header.Set("use_model", fmt.Sprint(use_model))
 
 	resp, err := client.Do(req)
 
@@ -64,16 +61,16 @@ func TrainingData(serverEndpoint string, startTime time.Time, endTime time.Time)
 
 func RunSingleSim() {
 	conf := strategies.BasicConfig{
-		BuyPred15Mod:    1.7964807132040863,
-		BuyPred60Mod:    1.4717291842802593,
-		BuyPred1440Mod:  0.6516761024844556,
-		SellPred15Mod:   1.7102785724218976,
-		SellPred60Mod:   2.500594466058227,
-		SellPred1440Mod: 1.3906215240890492,
-		StopLoss:        -0.003641471182833845,
-		ProfitCap:       0.019435102025411398,
-		BuyQtyMod:       0.7791674502000079,
-		SellQtyMod:      0.9961800350218821,
+		BuyPred5Mod:    1.9642530109804408,
+		BuyPred10Mod:   0.05497421343571969,
+		BuyPred100Mod:  2.4332437134090674,
+		SellPred5Mod:   1.3637120887884517,
+		SellPred10Mod:  1.238427996702663,
+		SellPred100Mod: 2.071777991900559,
+		StopLoss:       -0.003641471182833845,
+		ProfitCap:      0.02798852232740097,
+		BuyQtyMod:      0.04766891255922648,
+		SellQtyMod:     0.9980123190092692,
 	}
 
 	var _, err = os.Stat("trader.log")
@@ -101,9 +98,8 @@ func RunEvolution() {
 		GenerationSize: 200,
 		NumGenerations: 15,
 		MutationRate:   0.4,
-		StartingPoint: []float64{1.7964807132040863, 1.4717291842802593, 0.6516761024844556, 1.7102785724218976,
-			2.500594466058227, 1.3906215240890492, -0.003641471182833845, 0.019435102025411398, 0.7961493374586381,
-			0.9961800350218821},
+		StartingPoint: []float64{1.9642530109804408, 0.05497421343571969, 2.4332437134090674, 1.3637120887884517, 1.238427996702663,
+			2.071777991900559, -0.003641471182833845, 0.02798852232740097, 0.04766891255922648, 0.9980123190092692},
 	}
 
 	log.Println("Starting Evo...")

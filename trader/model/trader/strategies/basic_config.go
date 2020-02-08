@@ -5,16 +5,16 @@ import (
 )
 
 type BasicConfig struct {
-	BuyPred15Mod    float64
-	BuyPred60Mod    float64
-	BuyPred1440Mod  float64
-	SellPred15Mod   float64
-	SellPred60Mod   float64
-	SellPred1440Mod float64
-	StopLoss        float64
-	ProfitCap       float64
-	BuyQtyMod       float64
-	SellQtyMod      float64
+	BuyPred5Mod    float64
+	BuyPred10Mod   float64
+	BuyPred100Mod  float64
+	SellPred5Mod   float64
+	SellPred10Mod  float64
+	SellPred100Mod float64
+	StopLoss       float64
+	ProfitCap      float64
+	BuyQtyMod      float64
+	SellQtyMod     float64
 }
 
 func (c *BasicConfig) NumParams() int {
@@ -22,17 +22,17 @@ func (c *BasicConfig) NumParams() int {
 }
 
 func (c *BasicConfig) ToSlice() []float64 {
-	return []float64{c.BuyPred15Mod, c.BuyPred60Mod, c.BuyPred1440Mod, c.SellPred15Mod, c.SellPred60Mod, c.SellPred1440Mod,
+	return []float64{c.BuyPred5Mod, c.BuyPred10Mod, c.BuyPred100Mod, c.SellPred5Mod, c.SellPred10Mod, c.SellPred100Mod,
 		c.StopLoss, c.ProfitCap, c.BuyQtyMod, c.SellQtyMod}
 }
 
 func (c *BasicConfig) FromSlice(slice []float64) {
-	c.BuyPred15Mod = slice[0]
-	c.BuyPred60Mod = slice[1]
-	c.BuyPred1440Mod = slice[2]
-	c.SellPred15Mod = slice[3]
-	c.SellPred60Mod = slice[4]
-	c.SellPred1440Mod = slice[5]
+	c.BuyPred5Mod = slice[0]
+	c.BuyPred10Mod = slice[1]
+	c.BuyPred100Mod = slice[2]
+	c.SellPred5Mod = slice[3]
+	c.SellPred10Mod = slice[4]
+	c.SellPred100Mod = slice[5]
 	c.StopLoss = slice[6]
 	c.ProfitCap = slice[7]
 	c.BuyQtyMod = slice[8]
@@ -42,22 +42,22 @@ func (c *BasicConfig) FromSlice(slice []float64) {
 func (c *BasicConfig) ParamRanges() ([]float64, []float64) {
 	var min = make([]float64, c.NumParams())
 	var max = make([]float64, c.NumParams())
-	//BuyPred15Mod
+	//BuyPred5Mod
 	min[0] = 0
 	max[0] = 3
-	//BuyPred60Mod
+	//BuyPred10Mod
 	min[1] = 0
 	max[1] = 3
-	//BuyPred1440Mod
+	//BuyPred100Mod
 	min[2] = 0
 	max[2] = 3
-	//SellPred15Mod
+	//SellPred5Mod
 	min[3] = 0
 	max[3] = 3
-	//SellPred60Mod
+	//SellPred10Mod
 	min[4] = 0
 	max[4] = 3
-	//SellPred1440Mod
+	//SellPred100Mod
 	min[5] = 0
 	max[5] = 3
 	//StopLoss
