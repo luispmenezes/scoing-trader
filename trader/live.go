@@ -50,6 +50,10 @@ func NewLive(serverHost string, serverPort string, timeout int) *Live {
 func (l *Live) Run() {
 	numDecisions := 0
 
+	lastTimestamps := make(map[string]time.Time)
+
+	log.Println("Starting Live Mode...")
+
 	for {
 		for _, coin := range coins {
 			endpoint := "http://" + l.ServerHost + ":" + l.ServerPort + path + coin
@@ -65,7 +69,7 @@ func (l *Live) Run() {
 			for {
 				resp, err = l.HttpClient.Do(req)
 				if err != nil || resp.StatusCode < 200 || resp.StatusCode > 299 {
-					log.Println("Failed getting lastest prediction from server.\nSleeping for 30 s...")
+					log.Println("Failed getting latest prediction from server.\nSleeping for 30 s...")
 					if err == nil {
 						log.Println(resp.StatusCode)
 					}
@@ -85,16 +89,21 @@ func (l *Live) Run() {
 				panic(err)
 			}
 
-			l.Trader.Wallet.UpdateCoinValue(coin, prediction.CloseValue, prediction.Timestamp)
-			l.Trader.Predictor.SetNextPrediction(prediction)
-			l.Trader.ProcessData(coin)
+			lastCoinTimestamp, exists := lastTimestamps[coin]
 
-			if len(l.Trader.Records) != numDecisions {
-				log.Println(l.Trader.Records[len(l.Trader.Records)-1].ToString())
-				numDecisions = len(l.Trader.Records)
+			if !exists || !prediction.Timestamp.Equal(lastCoinTimestamp) {
+				l.Trader.Wallet.UpdateCoinValue(coin, prediction.CloseValue, prediction.Timestamp)
+				l.Trader.Predictor.SetNextPrediction(prediction)
+				l.Trader.ProcessData(coin)
+
+				if len(l.Trader.Records) != numDecisions {
+					log.Println(l.Trader.Records[len(l.Trader.Records)-1].ToString())
+					numDecisions = len(l.Trader.Records)
+				}
+				lastTimestamps[coin] = prediction.Timestamp
 			}
 		}
 		log.Println(l.Trader.Wallet.ToString())
-		time.Sleep(120 * time.Second)
+		time.Sleep(60 * time.Second)
 	}
 }
