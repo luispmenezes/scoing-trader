@@ -3,6 +3,7 @@ package trader
 import (
 	"encoding/json"
 	"log"
+	"math"
 	"net/http"
 	"super-trader/trader/model/predictor"
 	"super-trader/trader/model/trader"
@@ -97,7 +98,9 @@ func (l *Live) Run() {
 				l.Trader.ProcessData(coin)
 
 				if len(l.Trader.Records) != numDecisions {
-					log.Println(l.Trader.Records[len(l.Trader.Records)-1].ToString())
+					for i := int(math.Max(0, float64(numDecisions-1))); i < len(l.Trader.Records); i++ {
+						log.Println(l.Trader.Records[i].ToString())
+					}
 					numDecisions = len(l.Trader.Records)
 				}
 				lastTimestamps[coin] = prediction.Timestamp

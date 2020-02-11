@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"sort"
 	"super-trader/trader/model/predictor"
@@ -42,7 +43,10 @@ func (sim *Simulation) Run() {
 
 		if sim.Logging {
 			if len(sim.Trader.Records) != numDecisions {
-				log.Println(sim.Trader.Records[len(sim.Trader.Records)-1].ToString())
+				for i := int(math.Max(0, float64(numDecisions-1))); i < len(sim.Trader.Records); i++ {
+					log.Println(sim.Trader.Records[i].ToString())
+				}
+
 				numDecisions = len(sim.Trader.Records)
 
 				log.Println(sim.Trader.Wallet.ToString())
@@ -79,6 +83,11 @@ func (sim *Simulation) Run() {
 		}*/
 
 		var coinList = []string{"BTCUSDT", "ETHUSDT", "BNBUSDT", "LTCUSDT", "XRPUSDT"}
+
+		for _, coin := range coinList {
+			headers = append(headers, coin)
+			headers = append(headers, coin+"_positions")
+		}
 
 		var data = [][]string{headers}
 
