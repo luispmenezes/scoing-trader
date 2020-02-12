@@ -6,11 +6,11 @@ import (
 	"log"
 	"math"
 	"os"
+	"scoing-trader/trader/model/predictor"
+	"scoing-trader/trader/model/trader"
+	"scoing-trader/trader/model/trader/strategies"
+	"scoing-trader/trader/model/wallet"
 	"sort"
-	"super-trader/trader/model/predictor"
-	"super-trader/trader/model/trader"
-	"super-trader/trader/model/trader/strategies"
-	"super-trader/trader/model/wallet"
 )
 
 type Simulation struct {

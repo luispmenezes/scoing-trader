@@ -2,7 +2,7 @@ package trader
 
 import (
 	"fmt"
-	"super-trader/trader/model/predictor"
+	"scoing-trader/trader/model/predictor"
 	"time"
 )
 

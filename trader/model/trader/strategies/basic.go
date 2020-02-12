@@ -2,8 +2,8 @@ package strategies
 
 import (
 	"math"
-	"super-trader/trader/model/predictor"
-	"super-trader/trader/model/trader"
+	"scoing-trader/trader/model/predictor"
+	"scoing-trader/trader/model/trader"
 )
 
 type BasicStrategy struct {

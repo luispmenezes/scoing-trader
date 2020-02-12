@@ -6,10 +6,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"scoing-trader/trader/model"
+	"scoing-trader/trader/model/predictor"
+	"scoing-trader/trader/model/trader/strategies"
 	"strconv"
-	"super-trader/trader/model"
-	"super-trader/trader/model/predictor"
-	"super-trader/trader/model/trader/strategies"
 	"time"
 )
 

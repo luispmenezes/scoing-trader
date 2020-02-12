@@ -3,10 +3,10 @@ package trader
 import (
 	"log"
 	"math/rand"
+	"scoing-trader/trader/model/predictor"
+	"scoing-trader/trader/model/trader"
+	"scoing-trader/trader/model/trader/strategies"
 	"sort"
-	"super-trader/trader/model/predictor"
-	"super-trader/trader/model/trader"
-	"super-trader/trader/model/trader/strategies"
 	"sync"
 	"time"
 )

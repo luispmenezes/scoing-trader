@@ -1,8 +1,8 @@
 package trader
 
 import (
-	"super-trader/trader/model/predictor"
-	"super-trader/trader/model/wallet"
+	"scoing-trader/trader/model/predictor"
+	"scoing-trader/trader/model/wallet"
 )
 
 type Trader struct {

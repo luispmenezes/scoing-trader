@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 	"os"
-	"super-trader/trader"
+	"scoing-trader/trader"
 	"time"
 )
 
