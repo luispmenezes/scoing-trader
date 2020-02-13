@@ -6,10 +6,10 @@ import (
 	"log"
 	"math"
 	"os"
+	"scoing-trader/trader/model/market"
 	"scoing-trader/trader/model/predictor"
 	"scoing-trader/trader/model/trader"
 	"scoing-trader/trader/model/trader/strategies"
-	"scoing-trader/trader/model/wallet"
 	"sort"
 )
 
@@ -24,7 +24,7 @@ func NewSimulation(predictions []predictor.Prediction, config trader.StrategyCon
 	return &Simulation{
 		Predictions: predictions,
 		Trader: *trader.NewTrader(config,
-			wallet.NewSimulatedWallet(initialBalance, fee),
+			market.NewSimulatedWallet(initialBalance, fee),
 			predictor.NewSimulatedPredictor(uncertainty),
 			strategies.NewBasicStrategy(config.ToSlice()), keepRecords),
 		Logging: keepRecords,

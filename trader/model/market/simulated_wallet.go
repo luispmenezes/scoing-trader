@@ -1,4 +1,4 @@
-package wallet
+package market
 
 import (
 	"fmt"

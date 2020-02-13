@@ -1,20 +1,20 @@
 package trader
 
 import (
+	"scoing-trader/trader/model/market"
 	"scoing-trader/trader/model/predictor"
-	"scoing-trader/trader/model/wallet"
 )
 
 type Trader struct {
 	Config      StrategyConfig
-	Wallet      wallet.Wallet
+	Wallet      market.Wallet
 	Predictor   predictor.Predictor
 	Strategy    Strategy
 	Records     []TradeRecord
 	KeepRecords bool
 }
 
-func NewTrader(config StrategyConfig, wallet wallet.Wallet, predictor predictor.Predictor, strategy Strategy, keepRecords bool) *Trader {
+func NewTrader(config StrategyConfig, wallet market.Wallet, predictor predictor.Predictor, strategy Strategy, keepRecords bool) *Trader {
 	return &Trader{
 		Config:      config,
 		Wallet:      wallet,
@@ -61,5 +61,4 @@ func (t *Trader) ProcessData(coin string) {
 			t.Wallet.Sell(coin, decision.Val, decision.Qty)
 		}
 	}
-
 }

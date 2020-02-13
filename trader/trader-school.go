@@ -6,14 +6,12 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"scoing-trader/trader/model"
 	"scoing-trader/trader/model/predictor"
 	"scoing-trader/trader/model/trader/strategies"
 	"strconv"
 	"time"
 )
 
-var exchangeData map[string][]model.ExchangeData
 var predictions []predictor.Prediction
 
 func SetupEnvironment(startTime time.Time, endTime time.Time, useModel bool, host string, port string) {

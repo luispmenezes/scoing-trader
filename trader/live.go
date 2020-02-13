@@ -5,10 +5,10 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"scoing-trader/trader/model/market"
 	"scoing-trader/trader/model/predictor"
 	"scoing-trader/trader/model/trader"
 	"scoing-trader/trader/model/trader/strategies"
-	"scoing-trader/trader/model/wallet"
 	"time"
 )
 
@@ -42,7 +42,7 @@ func NewLive(serverHost string, serverPort string, timeout int) *Live {
 		ServerHost: serverHost,
 		ServerPort: serverPort,
 		Trader: *trader.NewTrader(config,
-			wallet.NewSimulatedWallet(1000, 0.001),
+			market.NewSimulatedWallet(1000, 0.001),
 			predictor.NewSimulatedPredictor(0),
 			strategies.NewBasicStrategy(config.ToSlice()), true),
 	}
