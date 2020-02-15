@@ -1,8 +1,8 @@
-package market
+package model
 
 import "time"
 
-type Wallet interface {
+type Accountant interface {
 	Buy(coin string, quantity float64)
 	Sell(coin string, buyValue float64, quantity float64)
 	UpdateCoinValue(coin string, value float64, timestamp time.Time)

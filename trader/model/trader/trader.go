@@ -1,23 +1,23 @@
 package trader
 
 import (
-	"scoing-trader/trader/model/market"
+	"scoing-trader/trader/model/market/model"
 	"scoing-trader/trader/model/predictor"
 )
 
 type Trader struct {
 	Config      StrategyConfig
-	Wallet      market.Wallet
+	Accountant  model.Accountant
 	Predictor   predictor.Predictor
 	Strategy    Strategy
 	Records     []TradeRecord
 	KeepRecords bool
 }
 
-func NewTrader(config StrategyConfig, wallet market.Wallet, predictor predictor.Predictor, strategy Strategy, keepRecords bool) *Trader {
+func NewTrader(config StrategyConfig, accountant model.Accountant, predictor predictor.Predictor, strategy Strategy, keepRecords bool) *Trader {
 	return &Trader{
 		Config:      config,
-		Wallet:      wallet,
+		Accountant:  accountant,
 		Predictor:   predictor,
 		Strategy:    strategy,
 		Records:     make([]TradeRecord, 0),
@@ -28,8 +28,8 @@ func NewTrader(config StrategyConfig, wallet market.Wallet, predictor predictor.
 func (t *Trader) ProcessData(coin string) {
 	prediction := t.Predictor.Predict(coin)
 
-	decisionArr := t.Strategy.ComputeDecision(prediction, t.Wallet.GetPositions(coin), t.Wallet.CoinNetWorth(coin),
-		t.Wallet.NetWorth(), t.Wallet.GetBalance(), t.Wallet.GetFee())
+	decisionArr := t.Strategy.ComputeDecision(prediction, t.Accountant.GetPositions(coin), t.Accountant.CoinNetWorth(coin),
+		t.Accountant.NetWorth(), t.Accountant.GetBalance(), t.Accountant.GetFee())
 
 	if t.KeepRecords {
 		for _, decision := range decisionArr {
@@ -40,13 +40,13 @@ func (t *Trader) ProcessData(coin string) {
 					Event:       decision.EventType,
 					Qty:         decision.Qty,
 					Value:       prediction.CloseValue,
-					Transaction: decision.Val * decision.Qty * (1 + t.Wallet.GetFee()),
+					Transaction: decision.Val * decision.Qty * (1 + t.Accountant.GetFee()),
 					Profit:      0,
 				}
 
 				if decision.EventType == PROFIT_SELL || decision.EventType == LOSS_SELL {
-					record.Profit += (prediction.CloseValue * decision.Qty * (1 - t.Wallet.GetFee())) -
-						(decision.Val * decision.Qty * (1 + t.Wallet.GetFee()))
+					record.Profit += (prediction.CloseValue * decision.Qty * (1 - t.Accountant.GetFee())) -
+						(decision.Val * decision.Qty * (1 + t.Accountant.GetFee()))
 				}
 
 				t.Records = append(t.Records, record)
@@ -56,9 +56,9 @@ func (t *Trader) ProcessData(coin string) {
 
 	for _, decision := range decisionArr {
 		if decision.EventType == BUY {
-			t.Wallet.Buy(coin, decision.Qty)
+			t.Accountant.Buy(coin, decision.Qty)
 		} else if decision.EventType == PROFIT_SELL || decision.EventType == LOSS_SELL {
-			t.Wallet.Sell(coin, decision.Val, decision.Qty)
+			t.Accountant.Sell(coin, decision.Val, decision.Qty)
 		}
 	}
 }

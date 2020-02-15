@@ -93,7 +93,7 @@ func (l *Live) Run() {
 			lastCoinTimestamp, exists := lastTimestamps[coin]
 
 			if !exists || !prediction.Timestamp.Equal(lastCoinTimestamp) {
-				l.Trader.Wallet.UpdateCoinValue(coin, prediction.CloseValue, prediction.Timestamp)
+				l.Trader.Accountant.UpdateCoinValue(coin, prediction.CloseValue, prediction.Timestamp)
 				l.Trader.Predictor.SetNextPrediction(prediction)
 				l.Trader.ProcessData(coin)
 
@@ -106,7 +106,7 @@ func (l *Live) Run() {
 				lastTimestamps[coin] = prediction.Timestamp
 			}
 		}
-		log.Println(l.Trader.Wallet.ToString())
+		log.Println(l.Trader.Accountant.ToString())
 		time.Sleep(60 * time.Second)
 	}
 }

@@ -10,13 +10,13 @@ type AccountInformation struct {
 	CanDeposit       bool
 	UpdateTime       int64
 	AccountType      string
-	Balances         []Balances
+	Balances         []Balance
 }
 
-type Balances struct {
+type Balance struct {
 	Asset  string
 	Free   float64
-	Locker float64
+	Locked float64
 }
 
 type Trade struct {

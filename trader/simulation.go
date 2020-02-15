@@ -37,7 +37,7 @@ func (sim *Simulation) Run() {
 	var history_trader = make(map[string][]string)
 
 	for _, pred := range sim.Predictions {
-		sim.Trader.Wallet.UpdateCoinValue(pred.Coin, pred.CloseValue, pred.Timestamp)
+		sim.Trader.Accountant.UpdateCoinValue(pred.Coin, pred.CloseValue, pred.Timestamp)
 		sim.Trader.Predictor.SetNextPrediction(pred)
 		sim.Trader.ProcessData(pred.Coin)
 
@@ -49,19 +49,19 @@ func (sim *Simulation) Run() {
 
 				numDecisions = len(sim.Trader.Records)
 
-				log.Println(sim.Trader.Wallet.ToString())
+				log.Println(sim.Trader.Accountant.ToString())
 			}
 
 			if pred.Timestamp.Minute() == 0 {
 				history_trader[pred.Timestamp.Format("2006-01-02 15:04:05")] = []string{
-					fmt.Sprintf("%f", sim.Trader.Wallet.GetBalance()), fmt.Sprintf("%f", sim.Trader.Wallet.NetWorth())}
+					fmt.Sprintf("%f", sim.Trader.Accountant.GetBalance()), fmt.Sprintf("%f", sim.Trader.Accountant.NetWorth())}
 
 				if _, exists := history_coin[pred.Timestamp.Format("2006-01-02 15:04:05")]; !exists {
 					history_coin[pred.Timestamp.Format("2006-01-02 15:04:05")] = make(map[string][]string)
 				}
 
 				history_coin[pred.Timestamp.Format("2006-01-02 15:04:05")][pred.Coin] = []string{fmt.Sprintf("%f", pred.CloseValue),
-					fmt.Sprintf("%d", len(sim.Trader.Wallet.GetPositions(pred.Coin)))}
+					fmt.Sprintf("%d", len(sim.Trader.Accountant.GetPositions(pred.Coin)))}
 			}
 		}
 	}

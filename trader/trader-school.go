@@ -84,7 +84,7 @@ func RunSingleSim() {
 	simulation := NewSimulation(predictions, &conf, 1000, 0.001, 0.1, true)
 	simulation.Run()
 
-	fmt.Println(simulation.Trader.Wallet.NetWorth())
+	fmt.Println(simulation.Trader.Accountant.NetWorth())
 }
 
 func RunEvolution() {
@@ -121,5 +121,5 @@ func RunEvolution() {
 	simulation := NewSimulation(predictions, result.Config, 1000, 0.001, 0, true)
 	simulation.Run()
 
-	log.Println(simulation.Trader.Wallet.NetWorth())
+	log.Println(simulation.Trader.Accountant.NetWorth())
 }

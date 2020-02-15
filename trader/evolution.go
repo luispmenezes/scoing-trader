@@ -118,7 +118,7 @@ func (evo *Evolution) runSingleSimulation(specimen Specimen, predictions []predi
 	defer wg.Done()
 	sim := NewSimulation(predictions, specimen.Config, evo.InitialBalance, evo.Fee, evo.Uncertainty, false)
 	sim.Run()
-	specimen.Fitness = sim.Trader.Wallet.NetWorth()
+	specimen.Fitness = sim.Trader.Accountant.NetWorth()
 	out <- specimen
 }
 
