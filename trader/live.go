@@ -37,12 +37,15 @@ func NewLive(serverHost string, serverPort string, timeout int) *Live {
 		SellQtyMod:     0.9980123190092692,
 	}
 
+	marketEnt := market.NewSimulatedMarket(0, 0.001)
+	marketEnt.Deposit("USDT", 1000)
+
 	return &Live{
 		HttpClient: http.Client{Timeout: time.Duration(timeout) * time.Second},
 		ServerHost: serverHost,
 		ServerPort: serverPort,
 		Trader: *trader.NewTrader(config,
-			market.NewSimulatedWallet(1000, 0.001),
+			*market.NewAccountant(marketEnt, 1000, 0.001),
 			predictor.NewSimulatedPredictor(0),
 			strategies.NewBasicStrategy(config.ToSlice()), true),
 	}
@@ -93,7 +96,10 @@ func (l *Live) Run() {
 			lastCoinTimestamp, exists := lastTimestamps[coin]
 
 			if !exists || !prediction.Timestamp.Equal(lastCoinTimestamp) {
-				l.Trader.Accountant.UpdateCoinValue(coin, prediction.CloseValue, prediction.Timestamp)
+				err := l.Trader.Accountant.UpdateCoinValue(coin, prediction.CloseValue, prediction.Timestamp)
+				if err != nil {
+					panic(err)
+				}
 				l.Trader.Predictor.SetNextPrediction(prediction)
 				l.Trader.ProcessData(coin)
 

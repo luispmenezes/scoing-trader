@@ -21,6 +21,7 @@ func NewSimulatedMarket(unfilledRate float64, fee float64) *SimulatedMarket {
 		accountInfo:  model.AccountInformation{},
 		orderList:    make([]model.OrderResponseFull, 0),
 		tradeList:    make([]model.Trade, 0),
+		coinValues:   make(map[string]float64),
 		unfilledRate: unfilledRate,
 		fee:          fee,
 	}
@@ -185,23 +186,22 @@ func (s *SimulatedMarket) CoinValue(asset string) (float64, error) {
 }
 
 func (s *SimulatedMarket) Deposit(asset string, qty float64) {
-	var balancePtr *model.Balance
+	balanceIdx := -1
 
-	for _, b := range s.accountInfo.Balances {
-		if b.Asset == asset {
-			balancePtr = &b
+	for idx, balance := range s.accountInfo.Balances {
+		if balance.Asset == asset {
+			balanceIdx = idx
 		}
 	}
 
-	if balancePtr == nil {
-		balance := model.Balance{
+	if balanceIdx == -1 {
+		s.accountInfo.Balances = append(s.accountInfo.Balances, model.Balance{
 			Asset:  asset,
 			Free:   qty,
 			Locked: 0,
-		}
-		s.accountInfo.Balances = append(s.accountInfo.Balances, balance)
+		})
 	} else {
-		balancePtr.Free += qty
+		s.accountInfo.Balances[balanceIdx].Free += qty
 	}
 }
 

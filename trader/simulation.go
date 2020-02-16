@@ -21,10 +21,12 @@ type Simulation struct {
 
 func NewSimulation(predictions []predictor.Prediction, config trader.StrategyConfig, initialBalance float64, fee float64,
 	uncertainty float64, keepRecords bool) *Simulation {
+	marketEnt := market.NewSimulatedMarket(0, 0.001)
+	marketEnt.Deposit("USDT", initialBalance)
 	return &Simulation{
 		Predictions: predictions,
 		Trader: *trader.NewTrader(config,
-			market.NewSimulatedWallet(initialBalance, fee),
+			*market.NewAccountant(marketEnt, initialBalance, fee),
 			predictor.NewSimulatedPredictor(uncertainty),
 			strategies.NewBasicStrategy(config.ToSlice()), keepRecords),
 		Logging: keepRecords,

@@ -1,20 +1,20 @@
 package trader
 
 import (
-	"scoing-trader/trader/model/market/model"
+	"scoing-trader/trader/model/market"
 	"scoing-trader/trader/model/predictor"
 )
 
 type Trader struct {
 	Config      StrategyConfig
-	Accountant  model.Accountant
+	Accountant  market.Accountant
 	Predictor   predictor.Predictor
 	Strategy    Strategy
 	Records     []TradeRecord
 	KeepRecords bool
 }
 
-func NewTrader(config StrategyConfig, accountant model.Accountant, predictor predictor.Predictor, strategy Strategy, keepRecords bool) *Trader {
+func NewTrader(config StrategyConfig, accountant market.Accountant, predictor predictor.Predictor, strategy Strategy, keepRecords bool) *Trader {
 	return &Trader{
 		Config:      config,
 		Accountant:  accountant,
@@ -28,7 +28,7 @@ func NewTrader(config StrategyConfig, accountant model.Accountant, predictor pre
 func (t *Trader) ProcessData(coin string) {
 	prediction := t.Predictor.Predict(coin)
 
-	decisionArr := t.Strategy.ComputeDecision(prediction, t.Accountant.GetPositions(coin), t.Accountant.CoinNetWorth(coin),
+	decisionArr := t.Strategy.ComputeDecision(prediction, t.Accountant.GetPositions(coin), t.Accountant.Assets[coin],
 		t.Accountant.NetWorth(), t.Accountant.GetBalance(), t.Accountant.GetFee())
 
 	if t.KeepRecords {
@@ -56,9 +56,15 @@ func (t *Trader) ProcessData(coin string) {
 
 	for _, decision := range decisionArr {
 		if decision.EventType == BUY {
-			t.Accountant.Buy(coin, decision.Qty)
+			err := t.Accountant.Buy(coin, decision.Qty)
+			if err != nil {
+				panic(err)
+			}
 		} else if decision.EventType == PROFIT_SELL || decision.EventType == LOSS_SELL {
-			t.Accountant.Sell(coin, decision.Val, decision.Qty)
+			err := t.Accountant.Sell(coin, decision.Qty)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 }

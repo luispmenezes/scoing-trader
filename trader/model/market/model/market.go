@@ -10,4 +10,6 @@ type Market interface {
 	Trades() []Trade
 	UpdateInformation()
 	CoinValue(asset string) (float64, error)
+	Deposit(asset string, qty float64)
+	UpdateCoinValue(asset string, value float64)
 }
