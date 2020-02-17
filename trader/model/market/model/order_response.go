@@ -2,18 +2,18 @@ package model
 
 type OrderResponseAck struct {
 	Symbol          string
-	OrderId         int64
-	OrderListId     int64
+	OrderId         float64
+	OrderListId     float64
 	ClientOrderId   string
-	TransactionTime int64
+	TransactionTime float64
 }
 
 type OrderResponseResult struct {
 	Symbol              string
-	OrderId             int64
-	OrderListId         int64
+	OrderId             float64
+	OrderListId         float64
 	ClientOrderId       string
-	TransactionTime     int64
+	TransactionTime     float64
 	Price               float64
 	OrigQty             float64
 	ExecutedQty         float64

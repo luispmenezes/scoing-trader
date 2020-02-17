@@ -10,7 +10,7 @@ func TestBuy(t *testing.T) {
 	market := NewSimulatedMarket(0, 0)
 	market.Deposit("USDT", 100)
 	accountant := NewAccountant(market, 100, 0)
-	err := accountant.UpdateCoinValue("BTCUSDT", 10, time.Now())
+	err := accountant.UpdateAssetValue("BTCUSDT", 10, time.Now())
 
 	if err != nil {
 		t.Error(err)
@@ -40,7 +40,7 @@ func TestSell(t *testing.T) {
 	market := NewSimulatedMarket(0, 0)
 	market.Deposit("USDT", 100)
 	accountant := NewAccountant(market, 100, 0)
-	err := accountant.UpdateCoinValue("BTCUSDT", 10, time.Now())
+	err := accountant.UpdateAssetValue("BTCUSDT", 10, time.Now())
 	if err != nil {
 		t.Error(err)
 	}
@@ -50,7 +50,7 @@ func TestSell(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = accountant.UpdateCoinValue("BTCUSDT", 20, time.Now())
+	err = accountant.UpdateAssetValue("BTCUSDT", 20, time.Now())
 	if err != nil {
 		t.Error(err)
 	}
@@ -64,8 +64,8 @@ func TestSell(t *testing.T) {
 		t.Error("Expected balance before sale 40, got ", accountant.Balance)
 	}
 
-	if accountant.CoinPortfolioValue("BTCUSDT") != 4 {
-		t.Error("Expected BTC balance 4, got ", accountant.CoinPortfolioValue("BTCUSDT"))
+	if accountant.AssetQty("BTCUSDT") != 4 {
+		t.Error("Expected BTC balance 4, got ", accountant.AssetQty("BTCUSDT"))
 	}
 
 	err = accountant.Sell("BTCUSDT", 3)
@@ -97,7 +97,7 @@ func TestFee(t *testing.T) {
 	market := NewSimulatedMarket(0, 0.1)
 	market.Deposit("USDT", 100)
 	accountant := NewAccountant(market, 100, 0.1)
-	err := accountant.UpdateCoinValue("BTCUSDT", 10, time.Now())
+	err := accountant.UpdateAssetValue("BTCUSDT", 10, time.Now())
 	if err != nil {
 		t.Error(err)
 	}
@@ -121,12 +121,12 @@ func TestPositionValue(t *testing.T) {
 	market := NewSimulatedMarket(0, 0)
 	market.Deposit("USDT", 100)
 	accountant := NewAccountant(market, 100, 0)
-	err := accountant.UpdateCoinValue("BTCUSDT", 10, time.Now())
+	err := accountant.UpdateAssetValue("BTCUSDT", 10, time.Now())
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = accountant.UpdateCoinValue("ETHUSDT", 5, time.Now())
+	err = accountant.UpdateAssetValue("ETHUSDT", 5, time.Now())
 	if err != nil {
 		t.Error(err)
 	}
@@ -145,12 +145,12 @@ func TestPositionValue(t *testing.T) {
 		t.Error("Expected Position Value 100, got ", accountant.NetWorth())
 	}
 
-	err = accountant.UpdateCoinValue("BTCUSDT", 20, time.Now())
+	err = accountant.UpdateAssetValue("BTCUSDT", 20, time.Now())
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = accountant.UpdateCoinValue("ETHUSDT", 10, time.Now())
+	err = accountant.UpdateAssetValue("ETHUSDT", 10, time.Now())
 	if err != nil {
 		t.Error(err)
 	}

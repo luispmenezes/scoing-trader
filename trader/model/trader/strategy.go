@@ -7,10 +7,10 @@ import (
 )
 
 type Strategy interface {
-	ComputeDecision(prediction predictor.Prediction, positions map[float64]float64, coinNetWorth float64,
-		totalNetWorth float64, balance float64, fee float64) []Decision
-	BuySize(prediction predictor.Prediction, coinNetWorth float64, totalNetWorth float64, balance float64, fee float64) float64
-	SellSize(prediction predictor.Prediction, positionQty float64) float64
+	ComputeDecision(prediction predictor.Prediction, positions map[int64]float64, coinNetWorth int64,
+		totalNetWorth int64, coinValue int64, balance int64, fee float64) map[DecisionType]Decision
+	BuySize(prediction predictor.Prediction, coinNetWorth int64, totalNetWorth int64, balance int64, fee float64) float64
+	SellSize(prediction predictor.Prediction, positionQty float64, coinValue int64) float64
 }
 
 type StrategyConfig interface {
@@ -26,16 +26,15 @@ type Decision struct {
 	EventType DecisionType
 	Coin      string
 	Qty       float64
-	Val       float64
+	Val       int64
 }
 
 type DecisionType string
 
 const (
-	BUY         DecisionType = "BUY"
-	PROFIT_SELL DecisionType = "PROFIT_SELL"
-	LOSS_SELL   DecisionType = "LOSS_SELL"
-	HOLD        DecisionType = "HOLD"
+	BUY  DecisionType = "BUY"
+	SELL DecisionType = "SELL"
+	HOLD DecisionType = "HOLD"
 )
 
 type TradeRecord struct {

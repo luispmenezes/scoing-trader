@@ -33,8 +33,8 @@ func (s *SimulatedMarket) NewOrder(order model.OrderRequest) error {
 	}
 
 	status := model.NEW
-	execQty := 0.0
-	cumQty := 0.0
+	var execQty float64
+	var cumQty float64
 
 	assetBalanceIdx, asset, quoteBalanceIdx, quote := s.getAssetQuoteIdx(order.Symbol)
 

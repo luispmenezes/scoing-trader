@@ -6,6 +6,7 @@ import (
 	"math"
 	"net/http"
 	"scoing-trader/trader/model/market"
+	"scoing-trader/trader/model/market/model"
 	"scoing-trader/trader/model/predictor"
 	"scoing-trader/trader/model/trader"
 	"scoing-trader/trader/model/trader/strategies"
@@ -96,7 +97,7 @@ func (l *Live) Run() {
 			lastCoinTimestamp, exists := lastTimestamps[coin]
 
 			if !exists || !prediction.Timestamp.Equal(lastCoinTimestamp) {
-				err := l.Trader.Accountant.UpdateCoinValue(coin, prediction.CloseValue, prediction.Timestamp)
+				err := l.Trader.Accountant.UpdateAssetValue(coin, model.FloatToInt(prediction.CloseValue), prediction.Timestamp)
 				if err != nil {
 					panic(err)
 				}

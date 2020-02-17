@@ -9,107 +9,111 @@ import (
 )
 
 type Accountant struct {
-	InitialBalance float64
+	InitialBalance int64
 	Fee            float64
-	Balance        float64
+	Balance        int64
 	Market         model.Market
-	Positions      map[string]map[float64]float64
+	Positions      map[string]map[int64]float64
 	Assets         map[string]float64
-	CoinValues     map[string]float64
+	AssetValues    map[string]int64
 }
 
-func NewAccountant(market model.Market, initialBalance float64, fee float64) *Accountant {
+func NewAccountant(market model.Market, initialBalance int64, fee float64) *Accountant {
 	return &Accountant{
 		InitialBalance: initialBalance,
 		Fee:            fee,
 		Balance:        initialBalance,
 		Market:         market,
-		Positions:      make(map[string]map[float64]float64),
+		Positions:      make(map[string]map[int64]float64),
 		Assets:         make(map[string]float64),
-		CoinValues:     make(map[string]float64),
+		AssetValues:    make(map[string]int64),
 	}
 }
 
-func (w *Accountant) Buy(coin string, quantity float64) error {
+func (a *Accountant) Buy(coin string, quantity float64) error {
 
 	if quantity < 0 {
-		return errors.New(fmt.Sprintf("negative buy quantity %2.f", quantity))
+		return errors.New(fmt.Sprintf("negative buy quantity %.8f", quantity))
 	}
 
-	transactionValue := w.CoinValues[coin] * quantity * (1 + w.Fee)
+	transactionValue := model.IntFloatMul(a.AssetValues[coin], quantity*(1+a.Fee))
 
-	if transactionValue > w.Balance {
-		return errors.New(fmt.Sprintf("buy transaction: %2.f exceeds balance: %.2f", transactionValue, w.Balance))
+	if transactionValue > a.Balance {
+		return errors.New(fmt.Sprintf("buy transaction: %s exceeds balance: %s",
+			model.IntToString(transactionValue), model.IntToString(a.Balance)))
 	}
 
 	buyOrder := model.OrderRequest{
 		Symbol:    coin,
 		Side:      model.BUY,
 		Type:      model.MARKET,
-		Timestamp: w.GetTimeStamp(),
+		Timestamp: a.GetTimeStamp(),
 		Quantity:  quantity,
 	}
 
-	if err := w.Market.NewOrder(buyOrder); err != nil {
+	if err := a.Market.NewOrder(buyOrder); err != nil {
 		return err
 	}
 
-	w.Balance -= transactionValue
+	a.Balance -= transactionValue
 
-	if _, hasKey := w.Positions[coin]; !hasKey {
-		w.Positions[coin] = make(map[float64]float64)
+	if _, hasKey := a.Positions[coin]; !hasKey {
+		a.Positions[coin] = make(map[int64]float64)
 	}
 
-	if _, hasKey := w.Positions[coin][w.CoinValues[coin]]; hasKey {
-		w.Positions[coin][w.CoinValues[coin]] += quantity
+	if _, hasKey := a.Positions[coin][a.AssetValues[coin]]; hasKey {
+		a.Positions[coin][a.AssetValues[coin]] += quantity
 	} else {
-		w.Positions[coin][w.CoinValues[coin]] = quantity
+		a.Positions[coin][a.AssetValues[coin]] = quantity
 	}
 
-	if _, hasKey := w.Assets[coin]; !hasKey {
-		w.Assets[coin] = quantity
+	if _, hasKey := a.Assets[coin]; !hasKey {
+		a.Assets[coin] = quantity
 	} else {
-		w.Assets[coin] += quantity
+		a.Assets[coin] += quantity
 	}
 
 	return nil
 }
 
-func (w *Accountant) Sell(coin string, quantity float64) error {
+func (a *Accountant) Sell(coin string, quantity float64) error {
 	if quantity < 0 {
-		return errors.New(fmt.Sprintf("negative buy quantity %2.f", quantity))
+		return errors.New(fmt.Sprintf("negative buy quantity %.8f", quantity))
 	}
 
-	if quantity > w.Assets[coin] {
-		return errors.New(fmt.Sprintf("sell quantity: %2.f exceeds available: %.2f", quantity, w.Assets[coin]))
+	if quantity > a.Assets[coin] {
+		return errors.New(fmt.Sprintf("sell quantity: %.8f exceeds available: %.8f", quantity, a.Assets[coin]))
 	}
 
 	sellOrder := model.OrderRequest{
 		Symbol:    coin,
 		Side:      model.SELL,
 		Type:      model.MARKET,
-		Timestamp: w.GetTimeStamp(),
+		Timestamp: a.GetTimeStamp(),
 		Quantity:  quantity,
 	}
 
-	if err := w.Market.NewOrder(sellOrder); err != nil {
+	if err := a.Market.NewOrder(sellOrder); err != nil {
 		return err
 	}
 
-	positionBuyValues := make([]float64, 0, len(w.Positions[coin]))
-	for pbv := range w.Positions[coin] {
+	positionBuyValues := make([]int64, 0, len(a.Positions[coin]))
+	for pbv := range a.Positions[coin] {
 		positionBuyValues = append(positionBuyValues, pbv)
 	}
 
-	sort.Float64s(positionBuyValues)
+	sort.Slice(positionBuyValues, func(i, j int) bool {
+		return positionBuyValues[i] < positionBuyValues[j]
+	})
+
 	remainingQty := quantity
 
 	for _, pbv := range positionBuyValues {
-		if remainingQty >= w.Positions[coin][pbv] {
-			remainingQty -= w.Positions[coin][pbv]
-			delete(w.Positions[coin], pbv)
+		if remainingQty >= a.Positions[coin][pbv] {
+			remainingQty -= a.Positions[coin][pbv]
+			delete(a.Positions[coin], pbv)
 		} else {
-			w.Positions[coin][pbv] -= remainingQty
+			a.Positions[coin][pbv] -= remainingQty
 			remainingQty = 0
 		}
 		if remainingQty == 0 {
@@ -117,74 +121,78 @@ func (w *Accountant) Sell(coin string, quantity float64) error {
 		}
 	}
 
-	w.Assets[coin] -= quantity
+	a.Assets[coin] -= quantity
 
-	currentValue := w.CoinValues[coin]
-	w.Balance += currentValue * quantity * (1 - w.Fee)
+	currentValue := a.AssetValues[coin]
+	a.Balance += model.IntFloatMul(currentValue, quantity*(1-a.Fee))
 
 	return nil
 }
 
-func (w *Accountant) UpdateCoinValue(coin string, value float64, timestamp time.Time) error {
+func (a *Accountant) UpdateAssetValue(coin string, value int64, timestamp time.Time) error {
 	if value < 0 {
-		return errors.New(fmt.Sprintf("negative coin value (%s,%.2f)", coin, value))
+		return errors.New(fmt.Sprintf("negative asset value (%s,%s)", coin, model.IntToString(value)))
 	}
-	w.CoinValues[coin] = value
-	w.Market.UpdateCoinValue(coin, value)
+	a.AssetValues[coin] = value
+	a.Market.UpdateCoinValue(coin, model.IntToFloat(value))
 	return nil
 }
 
-func (w *Accountant) GetBalance() float64 {
-	return w.Balance
+func (a *Accountant) GetBalance() int64 {
+	return a.Balance
 }
 
-func (w *Accountant) GetPositions(coin string) map[float64]float64 {
-	return w.Positions[coin]
+func (a *Accountant) GetPositions(coin string) map[int64]float64 {
+	return a.Positions[coin]
 }
 
-func (w *Accountant) GetFee() float64 {
-	return w.Fee
+func (a *Accountant) GetFee() float64 {
+	return a.Fee
 }
 
-func (w *Accountant) TotalAssetValue() float64 {
-	var totalValue float64 = 0
-	for coin, assetValue := range w.Assets {
-		totalValue += assetValue * w.CoinValues[coin]
+func (a *Accountant) TotalAssetValue() int64 {
+	var totalValue int64 = 0
+	for coin, assetValue := range a.Assets {
+		totalValue += model.IntFloatMul(a.AssetValues[coin], assetValue)
 	}
 	return totalValue
 }
 
-func (w *Accountant) NetWorth() float64 {
-	return w.Balance + w.TotalAssetValue()
+func (a *Accountant) NetWorth() int64 {
+	return a.Balance + a.TotalAssetValue()
 }
 
-func (w *Accountant) CoinPortfolioValue(coin string) float64 {
-	if value, contains := w.Assets[coin]; contains {
+func (a *Accountant) AssetQty(asset string) float64 {
+	if value, contains := a.Assets[asset]; contains {
 		return value
 	} else {
 		return 0.0
 	}
 }
 
-func (w *Accountant) ToString() string {
-	walletStr := fmt.Sprintf(">> NW:%.2f Balance:%.2f |", w.NetWorth(), w.GetBalance())
+func (a *Accountant) AssetValue(asset string) int64 {
+	return model.IntFloatMul(a.AssetValues[asset], a.AssetQty(asset))
+}
+
+func (a *Accountant) ToString() string {
+	walletStr := fmt.Sprintf(">> NW:%s Balance:%s |", model.IntToString(a.NetWorth()), model.IntToString(a.GetBalance()))
 
 	var coinList []string
 
-	for coin, _ := range w.CoinValues {
+	for coin, _ := range a.AssetValues {
 		coinList = append(coinList, coin)
 	}
 
 	sort.Strings(coinList)
 
 	for _, coin := range coinList {
-		walletStr += fmt.Sprintf(" %s #%d Total:%.2f$(%.2f%%) |", coin, len(w.Positions[coin]), w.CoinPortfolioValue(coin),
-			w.CoinPortfolioValue(coin)/w.NetWorth()*100)
+		walletStr += fmt.Sprintf(" %s #%d Total:%s$(%.2f%%) |", coin, len(a.Positions[coin]),
+			model.IntToString(a.AssetValue(coin)), float64(a.AssetValue(coin))/float64(a.NetWorth())*100)
 	}
 
 	return walletStr
 }
 
-func (w *Accountant) GetTimeStamp() int64 {
+func (a *Accountant) GetTimeStamp() int64 {
 	return time.Now().UnixNano() / int64(time.Millisecond)
 }

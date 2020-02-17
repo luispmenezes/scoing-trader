@@ -2,6 +2,7 @@ package trader
 
 import (
 	"scoing-trader/trader/model/market"
+	"scoing-trader/trader/model/market/model"
 	"scoing-trader/trader/model/predictor"
 )
 
@@ -28,8 +29,8 @@ func NewTrader(config StrategyConfig, accountant market.Accountant, predictor pr
 func (t *Trader) ProcessData(coin string) {
 	prediction := t.Predictor.Predict(coin)
 
-	decisionArr := t.Strategy.ComputeDecision(prediction, t.Accountant.GetPositions(coin), t.Accountant.Assets[coin],
-		t.Accountant.NetWorth(), t.Accountant.GetBalance(), t.Accountant.GetFee())
+	decisionArr := t.Strategy.ComputeDecision(prediction, t.Accountant.GetPositions(coin), t.Accountant.AssetValue(coin),
+		t.Accountant.NetWorth(), t.Accountant.AssetValues[coin], t.Accountant.GetBalance(), t.Accountant.GetFee())
 
 	if t.KeepRecords {
 		for _, decision := range decisionArr {
@@ -40,13 +41,13 @@ func (t *Trader) ProcessData(coin string) {
 					Event:       decision.EventType,
 					Qty:         decision.Qty,
 					Value:       prediction.CloseValue,
-					Transaction: decision.Val * decision.Qty * (1 + t.Accountant.GetFee()),
+					Transaction: model.IntToFloat(model.IntFloatMul(decision.Val, decision.Qty*(1+t.Accountant.GetFee()))),
 					Profit:      0,
 				}
 
-				if decision.EventType == PROFIT_SELL || decision.EventType == LOSS_SELL {
-					record.Profit += (prediction.CloseValue * decision.Qty * (1 - t.Accountant.GetFee())) -
-						(decision.Val * decision.Qty * (1 + t.Accountant.GetFee()))
+				if decision.EventType == SELL {
+					record.Profit += model.IntToFloat(model.IntFloatMul(model.FloatToInt(prediction.CloseValue), decision.Qty*(1-t.Accountant.GetFee())) -
+						model.IntFloatMul(decision.Val, decision.Qty*(1+t.Accountant.GetFee())))
 				}
 
 				t.Records = append(t.Records, record)
@@ -60,7 +61,7 @@ func (t *Trader) ProcessData(coin string) {
 			if err != nil {
 				panic(err)
 			}
-		} else if decision.EventType == PROFIT_SELL || decision.EventType == LOSS_SELL {
+		} else if decision.EventType == SELL {
 			err := t.Accountant.Sell(coin, decision.Qty)
 			if err != nil {
 				panic(err)

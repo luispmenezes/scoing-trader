@@ -23,7 +23,7 @@ type Evolution struct {
 }
 
 type Specimen struct {
-	Fitness float64
+	Fitness int64
 	Config  trader.StrategyConfig
 }
 
