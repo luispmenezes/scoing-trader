@@ -3,6 +3,7 @@ package trader
 import (
 	"log"
 	"math/rand"
+	"scoing-trader/trader/model/market/model"
 	"scoing-trader/trader/model/predictor"
 	"scoing-trader/trader/model/trader"
 	"scoing-trader/trader/model/trader/strategies"
@@ -57,13 +58,13 @@ func (evo *Evolution) Run() Specimen {
 		testedSpecimens := evo.simulateGeneration(specimenPool)
 		newCandidates := evo.selectCandidates(testedSpecimens, 2)
 
-		log.Printf("Generation %d Fitness: %f", i, newCandidates[0].Fitness)
+		log.Printf("Generation %d Fitness: %s", i, model.IntToString(newCandidates[0].Fitness))
 		log.Println(newCandidates[0].Config.ToSlice())
 
 		if len(candidates) == 0 || newCandidates[0].Fitness > candidates[0].Fitness {
 			candidates = newCandidates
 		} else {
-			log.Printf("New Generation worse than overall best (%f)", candidates[0].Fitness)
+			log.Printf("New Generation worse than overall best (%s)", model.IntToString(candidates[0].Fitness))
 		}
 
 		specimenPool = evo.breed(candidates)

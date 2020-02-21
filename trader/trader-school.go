@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"scoing-trader/trader/model/market/model"
 	"scoing-trader/trader/model/predictor"
 	"scoing-trader/trader/model/trader/strategies"
 	"strconv"
@@ -84,7 +85,7 @@ func RunSingleSim() {
 	simulation := NewSimulation(predictions, &conf, 1000, 0.001, 0.1, true)
 	simulation.Run()
 
-	fmt.Println(simulation.Trader.Accountant.NetWorth())
+	fmt.Println(model.IntToString(simulation.Trader.Accountant.NetWorth()) + "$")
 }
 
 func RunEvolution() {
@@ -92,12 +93,13 @@ func RunEvolution() {
 		Predictions:    predictions,
 		InitialBalance: 1000,
 		Fee:            0.001,
-		Uncertainty:    0.5,
-		GenerationSize: 200,
+		Uncertainty:    0,
+		GenerationSize: 400,
 		NumGenerations: 15,
 		MutationRate:   0.4,
-		StartingPoint: []float64{1.9642530109804408, 0.05497421343571969, 2.4332437134090674, 1.3637120887884517, 1.238427996702663,
-			2.071777991900559, -0.003641471182833845, 0.02798852232740097, 0.04766891255922648, 0.9980123190092692},
+		StartingPoint: []float64{2.0251376282249756, 0.5873073841927829, 0.5043322053305296, 1.2969923715289462,
+			1.16495904843373, 0.8470197466391618, -0.2135418301481863, 0.11912187551817349, 0.6591540134743608,
+			0.6547519264694094},
 	}
 
 	log.Println("Starting Evo...")

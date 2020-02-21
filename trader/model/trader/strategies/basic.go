@@ -21,29 +21,9 @@ func (s *BasicStrategy) ComputeDecision(prediction predictor.Prediction, positio
 
 	decisionMap := make(map[trader.DecisionType]trader.Decision)
 
-	pred15 := 0.0
-	pred60 := 0.0
-	pred1440 := 0.0
+	pred5, pred10, pred100 := s.computePredictors(prediction.Pred5, prediction.Pred10, prediction.Pred100)
 
-	if prediction.Pred5 > 0.01 {
-		pred15 = 1
-	} else if prediction.Pred5 < -0.01 {
-		pred15 = -1
-	}
-
-	if prediction.Pred10 > 0.01 {
-		pred60 = 1
-	} else if prediction.Pred10 < -0.01 {
-		pred60 = -1
-	}
-
-	if prediction.Pred100 > 0.01 {
-		pred1440 = 1
-	} else if prediction.Pred100 < -0.01 {
-		pred1440 = -1
-	}
-
-	if ((pred15 * s.Config.BuyPred5Mod) + (pred60 * s.Config.BuyPred10Mod) + (pred1440 * s.Config.BuyPred100Mod)) > 2 {
+	if ((pred5 * s.Config.BuyPred5Mod) + (pred10 * s.Config.BuyPred10Mod) + (pred100 * s.Config.BuyPred100Mod)) > 2 {
 		decision := trader.Decision{
 			EventType: trader.BUY,
 			Coin:      prediction.Coin,
@@ -55,7 +35,7 @@ func (s *BasicStrategy) ComputeDecision(prediction predictor.Prediction, positio
 		}
 	}
 
-	if ((pred15 * s.Config.SellPred5Mod) + (pred60 * s.Config.SellPred10Mod) + (pred1440 * s.Config.SellPred100Mod)) < -2 {
+	if ((pred5 * s.Config.SellPred5Mod) + (pred10 * s.Config.SellPred10Mod) + (pred100 * s.Config.SellPred100Mod)) < -2 {
 		for val, qty := range positions {
 			currentProfit := 1 - ((model.IntToFloat(val) / prediction.CloseValue) * (1 - fee))
 			if currentProfit < s.Config.StopLoss {
@@ -120,7 +100,7 @@ func (s *BasicStrategy) BuySize(prediction predictor.Prediction, coinNetWorth in
 		if transactionWFee < balance {
 			return model.IntToFloat(transaction) / prediction.CloseValue
 		} else {
-			return model.IntToFloat(balance) / prediction.CloseValue * (1 + fee)
+			return model.IntToFloat(balance) / (prediction.CloseValue * (1 + fee))
 		}
 	} else {
 		return 0.0
@@ -135,4 +115,30 @@ func (s *BasicStrategy) SellSize(prediction predictor.Prediction, positionQty fl
 	} else {
 		return 0.0
 	}
+}
+
+func (s *BasicStrategy) computePredictors(predValue5 float64, predValue10 float64, predValue100 float64) (float64, float64, float64) {
+	pred5 := 0.0
+	pred10 := 0.0
+	pred100 := 0.0
+
+	if predValue5 > 0.01 {
+		pred5 = 1
+	} else if predValue5 < -0.01 {
+		pred5 = -1
+	}
+
+	if predValue10 > 0.01 {
+		pred10 = 1
+	} else if predValue10 < -0.01 {
+		pred10 = -1
+	}
+
+	if predValue100 > 0.01 {
+		pred100 = 1
+	} else if predValue100 < -0.01 {
+		pred100 = -1
+	}
+
+	return pred5, pred10, pred100
 }
