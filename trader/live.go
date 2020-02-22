@@ -26,16 +26,16 @@ var coins = []string{"BTCUSDT", "ETHUSDT", "BNBUSDT", "LTCUSDT", "XRPUSDT"}
 
 func NewLive(serverHost string, serverPort string, timeout int) *Live {
 	config := &strategies.BasicConfig{
-		BuyPred5Mod:    1.9642530109804408,
-		BuyPred10Mod:   0.05497421343571969,
-		BuyPred100Mod:  2.4332437134090674,
-		SellPred5Mod:   1.3637120887884517,
-		SellPred10Mod:  1.238427996702663,
-		SellPred100Mod: 2.071777991900559,
-		StopLoss:       -0.003641471182833845,
-		ProfitCap:      0.02798852232740097,
-		BuyQtyMod:      0.04766891255922648,
-		SellQtyMod:     0.9980123190092692,
+		BuyPred5Mod:    2.0251376282249756,
+		BuyPred10Mod:   0.5873073841927829,
+		BuyPred100Mod:  0.5043322053305296,
+		SellPred5Mod:   1.2969923715289462,
+		SellPred10Mod:  1.16495904843373,
+		SellPred100Mod: 0.8470197466391618,
+		StopLoss:       -0.2135418301481863,
+		ProfitCap:      0.11912187551817349,
+		BuyQtyMod:      0.6591540134743608,
+		SellQtyMod:     0.6547519264694094,
 	}
 
 	marketEnt := market.NewSimulatedMarket(0, 0.001)
@@ -46,7 +46,7 @@ func NewLive(serverHost string, serverPort string, timeout int) *Live {
 		ServerHost: serverHost,
 		ServerPort: serverPort,
 		Trader: *trader.NewTrader(config,
-			*market.NewAccountant(marketEnt, 1000, 0.001),
+			*market.NewAccountant(marketEnt, model.FloatToInt(1000), 0.001),
 			predictor.NewSimulatedPredictor(0),
 			strategies.NewBasicStrategy(config.ToSlice()), true),
 	}

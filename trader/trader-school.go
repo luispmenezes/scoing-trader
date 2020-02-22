@@ -59,17 +59,17 @@ func TrainingData(serverEndpoint string, startTime time.Time, endTime time.Time,
 }
 
 func RunSingleSim() {
-	conf := strategies.BasicConfig{
-		BuyPred5Mod:    1.9642530109804408,
-		BuyPred10Mod:   0.05497421343571969,
-		BuyPred100Mod:  2.4332437134090674,
-		SellPred5Mod:   1.3637120887884517,
-		SellPred10Mod:  1.238427996702663,
-		SellPred100Mod: 2.071777991900559,
-		StopLoss:       -0.003641471182833845,
-		ProfitCap:      0.02798852232740097,
-		BuyQtyMod:      0.04766891255922648,
-		SellQtyMod:     0.9980123190092692,
+	conf := strategies.BasicWithMemoryConfig{
+		BuyPred5Mod:    2.6809206329479554,
+		BuyPred10Mod:   1.7064990556801447,
+		BuyPred100Mod:  0.09743963941547748,
+		SellPred5Mod:   2.541286321117902,
+		SellPred10Mod:  1.8694827401857466,
+		SellPred100Mod: 2.8514328946070377,
+		StopLoss:       -0.2090242723175535,
+		ProfitCap:      0.10027724036138984,
+		BuyQtyMod:      0.05966509880121879,
+		SellQtyMod:     0.3207395712639675,
 	}
 
 	var _, err = os.Stat("trader.log")
@@ -81,11 +81,31 @@ func RunSingleSim() {
 		panic(err)
 	}
 	log.SetOutput(logFile)
+	strategy := strategies.NewBasicWithMemoryStrategy(conf.ToSlice(), 10)
 
-	simulation := NewSimulation(predictions, &conf, 1000, 0.001, 0.1, true)
-	simulation.Run()
+	for i := 0; i < 5; i++ {
+		simulation := NewSimulation(&predictions, strategy, &conf, 1000, 0.001, 0, true)
+		simulation.Run()
 
-	fmt.Println(model.IntToString(simulation.Trader.Accountant.NetWorth()) + "$")
+		fmt.Println(model.IntToString(simulation.Trader.Accountant.NetWorth()) + "$")
+	}
+	conf2 := strategies.BasicConfig{
+		BuyPred5Mod:    2.6809206329479554,
+		BuyPred10Mod:   1.7064990556801447,
+		BuyPred100Mod:  0.09743963941547748,
+		SellPred5Mod:   2.541286321117902,
+		SellPred10Mod:  1.8694827401857466,
+		SellPred100Mod: 2.8514328946070377,
+		StopLoss:       -0.2090242723175535,
+		ProfitCap:      0.10027724036138984,
+		BuyQtyMod:      0.05966509880121879,
+		SellQtyMod:     0.3207395712639675,
+	}
+	strategy2 := strategies.NewBasicStrategy(conf2.ToSlice())
+	simulation2 := NewSimulation(&predictions, strategy2, &conf2, 1000, 0.001, 0, true)
+	simulation2.Run()
+
+	fmt.Println(model.IntToString(simulation2.Trader.Accountant.NetWorth()) + "$  <--- Sem MEM")
 }
 
 func RunEvolution() {
@@ -95,11 +115,9 @@ func RunEvolution() {
 		Fee:            0.001,
 		Uncertainty:    0,
 		GenerationSize: 400,
-		NumGenerations: 15,
+		NumGenerations: 5,
 		MutationRate:   0.4,
-		StartingPoint: []float64{2.0251376282249756, 0.5873073841927829, 0.5043322053305296, 1.2969923715289462,
-			1.16495904843373, 0.8470197466391618, -0.2135418301481863, 0.11912187551817349, 0.6591540134743608,
-			0.6547519264694094},
+		StartingPoint:  nil,
 	}
 
 	log.Println("Starting Evo...")
@@ -120,7 +138,8 @@ func RunEvolution() {
 	}
 	log.SetOutput(logFile)
 
-	simulation := NewSimulation(predictions, result.Config, 1000, 0.001, 0, true)
+	strategy := strategies.NewBasicWithMemoryStrategy(result.Config.ToSlice(), 10)
+	simulation := NewSimulation(&predictions, strategy, result.Config, 1000, 0.001, 0, true)
 	simulation.Run()
 
 	log.Println(simulation.Trader.Accountant.NetWorth())

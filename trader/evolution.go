@@ -21,6 +21,7 @@ type Evolution struct {
 	NumGenerations int
 	MutationRate   float64
 	StartingPoint  []float64
+	StrategyName   string
 }
 
 type Specimen struct {
@@ -35,15 +36,13 @@ func (evo *Evolution) Run() Specimen {
 	var candidates []Specimen
 
 	for i := 0; i < evo.GenerationSize; i++ {
-		var config strategies.BasicConfig
+		config := strategies.BasicWithMemoryConfig{}
 		if evo.StartingPoint != nil {
-			config = strategies.BasicConfig{}
 			config.FromSlice(evo.StartingPoint)
 			for j := 0; j < i; j++ {
 				config.RandomizeParam()
 			}
 		} else {
-			config = strategies.BasicConfig{}
 			config.RandomFromSlices(config.ParamRanges())
 		}
 
@@ -79,7 +78,7 @@ func (evo *Evolution) breed(candidates []Specimen) []Specimen {
 	//rand.Shuffle(len(candidates), func(i, j int) { candidates[i], candidates[j] = candidates[j], candidates[i] })
 	//TODO: Permitir mais de dois candidatos
 	for i := 0; i < evo.GenerationSize; i++ {
-		child := &strategies.BasicConfig{}
+		child := &strategies.BasicWithMemoryConfig{}
 		child.RandomFromSlices(candidates[0].Config.ToSlice(), candidates[1].Config.ToSlice())
 
 		if rand.Float64() <= evo.MutationRate {
@@ -99,13 +98,14 @@ func (evo *Evolution) breed(candidates []Specimen) []Specimen {
 }
 
 func (evo *Evolution) simulateGeneration(untestedSpecimens []Specimen) []Specimen {
-	resultChan := make(chan Specimen, evo.GenerationSize)
 	var testedSpecimens []Specimen
+
+	resultChan := make(chan Specimen, evo.GenerationSize)
 	var wg sync.WaitGroup
 
 	for _, specimen := range untestedSpecimens {
 		wg.Add(1)
-		go evo.runSingleSimulation(specimen, evo.Predictions, resultChan, &wg)
+		go evo.runSingleSimulation(specimen, &evo.Predictions, resultChan, &wg)
 	}
 
 	for i := 0; i < evo.GenerationSize; i++ {
@@ -115,9 +115,10 @@ func (evo *Evolution) simulateGeneration(untestedSpecimens []Specimen) []Specime
 	return testedSpecimens
 }
 
-func (evo *Evolution) runSingleSimulation(specimen Specimen, predictions []predictor.Prediction, out chan<- Specimen, wg *sync.WaitGroup) {
+func (evo *Evolution) runSingleSimulation(specimen Specimen, predictions *[]predictor.Prediction, out chan<- Specimen, wg *sync.WaitGroup) {
 	defer wg.Done()
-	sim := NewSimulation(predictions, specimen.Config, evo.InitialBalance, evo.Fee, evo.Uncertainty, false)
+	strategy := strategies.NewBasicWithMemoryStrategy(specimen.Config.ToSlice(), 10)
+	sim := NewSimulation(predictions, strategy, specimen.Config, evo.InitialBalance, evo.Fee, evo.Uncertainty, false)
 	sim.Run()
 	specimen.Fitness = sim.Trader.Accountant.NetWorth()
 	out <- specimen

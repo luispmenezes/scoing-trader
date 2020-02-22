@@ -10,17 +10,16 @@ import (
 	"scoing-trader/trader/model/market/model"
 	"scoing-trader/trader/model/predictor"
 	"scoing-trader/trader/model/trader"
-	"scoing-trader/trader/model/trader/strategies"
 	"sort"
 )
 
 type Simulation struct {
-	Predictions []predictor.Prediction
+	Predictions *[]predictor.Prediction
 	Trader      trader.Trader
 	Logging     bool
 }
 
-func NewSimulation(predictions []predictor.Prediction, config trader.StrategyConfig, initialBalance float64, fee float64,
+func NewSimulation(predictions *[]predictor.Prediction, strategy trader.Strategy, config trader.StrategyConfig, initialBalance float64, fee float64,
 	uncertainty float64, keepRecords bool) *Simulation {
 	marketEnt := market.NewSimulatedMarket(0, 0.001)
 	marketEnt.Deposit("USDT", initialBalance)
@@ -28,8 +27,7 @@ func NewSimulation(predictions []predictor.Prediction, config trader.StrategyCon
 		Predictions: predictions,
 		Trader: *trader.NewTrader(config,
 			*market.NewAccountant(marketEnt, model.FloatToInt(initialBalance), fee),
-			predictor.NewSimulatedPredictor(uncertainty),
-			strategies.NewBasicStrategy(config.ToSlice()), keepRecords),
+			predictor.NewSimulatedPredictor(uncertainty), strategy, keepRecords),
 		Logging: keepRecords,
 	}
 }
@@ -39,7 +37,7 @@ func (sim *Simulation) Run() {
 	var historyCoin = make(map[string]map[string][]string)
 	var historyTrader = make(map[string][]string)
 
-	for _, pred := range sim.Predictions {
+	for _, pred := range *sim.Predictions {
 		err := sim.Trader.Accountant.UpdateAssetValue(pred.Coin, model.FloatToInt(pred.CloseValue), pred.Timestamp)
 		if err != nil {
 			panic(err)
@@ -60,7 +58,7 @@ func (sim *Simulation) Run() {
 
 			if pred.Timestamp.Minute() == 0 {
 				historyTrader[pred.Timestamp.Format("2006-01-02 15:04:05")] = []string{
-					fmt.Sprintf("%f", sim.Trader.Accountant.GetBalance()), fmt.Sprintf("%f", sim.Trader.Accountant.NetWorth())}
+					fmt.Sprintf("%d", sim.Trader.Accountant.GetBalance()), fmt.Sprintf("%d", sim.Trader.Accountant.NetWorth())}
 
 				if _, exists := historyCoin[pred.Timestamp.Format("2006-01-02 15:04:05")]; !exists {
 					historyCoin[pred.Timestamp.Format("2006-01-02 15:04:05")] = make(map[string][]string)
