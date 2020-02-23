@@ -24,14 +24,13 @@ func (s *BasicStrategy) ComputeDecision(prediction predictor.Prediction, positio
 	pred5, pred10, pred100 := s.computePredictors(prediction.Pred5, prediction.Pred10, prediction.Pred100)
 
 	if ((pred5 * s.Config.BuyPred5Mod) + (pred10 * s.Config.BuyPred10Mod) + (pred100 * s.Config.BuyPred100Mod)) > 2 {
-		decision := trader.Decision{
-			EventType: trader.BUY,
-			Coin:      prediction.Coin,
-			Qty:       s.BuySize(prediction, coinNetWorth, totalNetWorth, balance, fee),
-			Val:       model.FloatToInt(prediction.CloseValue),
-		}
-		if decision.Qty > 0 {
-			decisionMap[trader.BUY] = decision
+		if buyQty := s.BuySize(prediction, coinNetWorth, totalNetWorth, balance, fee); buyQty > 0 {
+			decisionMap[trader.BUY] = trader.Decision{
+				EventType: trader.BUY,
+				Coin:      prediction.Coin,
+				Qty:       buyQty,
+				Val:       model.FloatToInt(prediction.CloseValue),
+			}
 		}
 	}
 
@@ -39,17 +38,16 @@ func (s *BasicStrategy) ComputeDecision(prediction predictor.Prediction, positio
 		for val, qty := range positions {
 			currentProfit := 1 - ((model.IntToFloat(val) / prediction.CloseValue) * (1 - fee))
 			if currentProfit < s.Config.StopLoss {
-				decision := trader.Decision{
-					EventType: trader.SELL,
-					Coin:      prediction.Coin,
-					Qty:       s.SellSize(prediction, qty, coinValue),
-					Val:       val,
-				}
-				if decision.Qty > 0 {
+				if sellQty := s.SellSize(prediction, qty, coinValue); sellQty > 0 {
 					if sellDecision, exists := decisionMap[trader.SELL]; exists {
-						sellDecision.Qty += decision.Qty
+						sellDecision.Qty += sellQty
 					} else {
-						decisionMap[trader.SELL] = decision
+						decisionMap[trader.SELL] = trader.Decision{
+							EventType: trader.SELL,
+							Coin:      prediction.Coin,
+							Qty:       sellQty,
+							Val:       val,
+						}
 					}
 				}
 			}
@@ -59,17 +57,16 @@ func (s *BasicStrategy) ComputeDecision(prediction predictor.Prediction, positio
 	for val, qty := range positions {
 		currentProfit := 1 - ((model.IntToFloat(val) / prediction.CloseValue) * (1 - fee))
 		if currentProfit > s.Config.ProfitCap {
-			decision := trader.Decision{
-				EventType: trader.SELL,
-				Coin:      prediction.Coin,
-				Qty:       s.SellSize(prediction, qty, coinValue),
-				Val:       val,
-			}
-			if decision.Qty > 0 {
+			if sellQty := s.SellSize(prediction, qty, coinValue); sellQty > 0 {
 				if sellDecision, exists := decisionMap[trader.SELL]; exists {
-					sellDecision.Qty += decision.Qty
+					sellDecision.Qty += sellQty
 				} else {
-					decisionMap[trader.SELL] = decision
+					decisionMap[trader.SELL] = trader.Decision{
+						EventType: trader.SELL,
+						Coin:      prediction.Coin,
+						Qty:       sellQty,
+						Val:       val,
+					}
 				}
 			}
 		}
@@ -93,14 +90,14 @@ func (s *BasicStrategy) BuySize(prediction predictor.Prediction, coinNetWorth in
 	maxCoinNetWorth := model.IntFloatMul(totalNetWorth, 0.3)
 	maxTransaction := model.IntFloatMul(totalNetWorth, 0.05)
 
-	if maxCoinNetWorth-coinNetWorth >= 10 && balance >= model.FloatToInt(10*(1+fee)) {
-		transaction := model.Max(10, model.Min(maxTransaction, model.IntFloatMul(maxCoinNetWorth-coinNetWorth, s.Config.BuyQtyMod)))
+	if maxCoinNetWorth-coinNetWorth >= 1000000000 && balance >= model.FloatToInt(10*(1+fee)) {
+		transaction := model.Max(1000000000, model.Min(maxTransaction, model.IntFloatMul(maxCoinNetWorth-coinNetWorth, s.Config.BuyQtyMod)))
 		transactionWFee := model.IntFloatMul(transaction, 1+fee)
 
 		if transactionWFee < balance {
 			return model.IntToFloat(transaction) / prediction.CloseValue
 		} else {
-			return model.IntToFloat(balance) / (prediction.CloseValue * (1 + fee))
+			return model.IntToFloat(balance-1) / (prediction.CloseValue * (1 + fee))
 		}
 	} else {
 		return 0.0
@@ -110,7 +107,7 @@ func (s *BasicStrategy) BuySize(prediction predictor.Prediction, coinNetWorth in
 func (s *BasicStrategy) SellSize(prediction predictor.Prediction, positionQty float64, coinValue int64) float64 {
 	proposedQty := positionQty * s.Config.SellQtyMod
 
-	if model.IntFloatMul(coinValue, proposedQty) > 10 {
+	if model.IntFloatMul(coinValue, proposedQty) > 1000000000 {
 		return proposedQty
 	} else {
 		return 0.0

@@ -7,7 +7,6 @@ import (
 )
 
 type Trader struct {
-	Config      StrategyConfig
 	Accountant  market.Accountant
 	Predictor   predictor.Predictor
 	Strategy    Strategy
@@ -15,9 +14,8 @@ type Trader struct {
 	KeepRecords bool
 }
 
-func NewTrader(config StrategyConfig, accountant market.Accountant, predictor predictor.Predictor, strategy Strategy, keepRecords bool) *Trader {
+func NewTrader(accountant market.Accountant, predictor predictor.Predictor, strategy Strategy, keepRecords bool) *Trader {
 	return &Trader{
-		Config:      config,
 		Accountant:  accountant,
 		Predictor:   predictor,
 		Strategy:    strategy,

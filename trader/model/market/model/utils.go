@@ -1,6 +1,9 @@
 package model
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 func IntFloatMul(a int64, b float64) int64 {
 	return int64(float64(a) * b)
@@ -36,4 +39,13 @@ func Min(a int64, b int64) int64 {
 	} else {
 		return b
 	}
+}
+
+func round(num float64) int {
+	return int(num + math.Copysign(0.5, num))
+}
+
+func TruncateFloat(value float64) float64 {
+	output := math.Pow(10, float64(8))
+	return float64(round(value*output)) / output
 }

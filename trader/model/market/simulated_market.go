@@ -9,8 +9,8 @@ import (
 
 type SimulatedMarket struct {
 	accountInfo  model.AccountInformation
-	orderList    []model.OrderResponseFull
-	tradeList    []model.Trade
+	orderList    []*model.OrderResponseFull
+	tradeList    []*model.Trade
 	coinValues   map[string]float64
 	unfilledRate float64
 	fee          float64
@@ -19,8 +19,8 @@ type SimulatedMarket struct {
 func NewSimulatedMarket(unfilledRate float64, fee float64) *SimulatedMarket {
 	return &SimulatedMarket{
 		accountInfo:  model.AccountInformation{},
-		orderList:    make([]model.OrderResponseFull, 0),
-		tradeList:    make([]model.Trade, 0),
+		orderList:    make([]*model.OrderResponseFull, 0),
+		tradeList:    make([]*model.Trade, 0),
 		coinValues:   make(map[string]float64),
 		unfilledRate: unfilledRate,
 		fee:          fee,
@@ -37,6 +37,10 @@ func (s *SimulatedMarket) NewOrder(order model.OrderRequest) error {
 	var cumQty float64
 
 	assetBalanceIdx, asset, quoteBalanceIdx, quote := s.getAssetQuoteIdx(order.Symbol)
+
+	if order.Price == 0.0 {
+		order.Price = s.coinValues[order.Symbol]
+	}
 
 	if quoteBalanceIdx == -1 {
 		return errors.New(fmt.Sprintf("No balance of asset: %s ", quote))
@@ -57,7 +61,8 @@ func (s *SimulatedMarket) NewOrder(order model.OrderRequest) error {
 	}
 
 	if order.Side == model.BUY && s.accountInfo.Balances[quoteBalanceIdx].Free < order.Quantity*order.Price*(1+s.fee) {
-		return errors.New(fmt.Sprintf("balance for %s doesn't cover transaction (%f)", quote, order.Quantity*order.Price*(1+s.fee)))
+		return errors.New(fmt.Sprintf("balance for %s (%f) doesn't cover transaction (%f)", quote,
+			s.accountInfo.Balances[quoteBalanceIdx].Free, order.Quantity*order.Price*(1+s.fee)))
 	}
 
 	if rand.Float64() >= s.unfilledRate {
@@ -66,11 +71,11 @@ func (s *SimulatedMarket) NewOrder(order model.OrderRequest) error {
 		cumQty = order.QuoteOrderQty
 
 		if order.Side == model.BUY {
-			s.accountInfo.Balances[quoteBalanceIdx].Free -= order.Quantity * order.Price * (1 + s.fee)
-			s.accountInfo.Balances[assetBalanceIdx].Free += order.Quantity
+			s.accountInfo.Balances[quoteBalanceIdx].Free = model.TruncateFloat(s.accountInfo.Balances[quoteBalanceIdx].Free - (order.Quantity * order.Price * (1 + s.fee)))
+			s.accountInfo.Balances[assetBalanceIdx].Free = model.TruncateFloat(s.accountInfo.Balances[assetBalanceIdx].Free + order.Quantity)
 		} else if order.Side == model.SELL {
-			s.accountInfo.Balances[assetBalanceIdx].Free -= order.Quantity
-			s.accountInfo.Balances[quoteBalanceIdx].Free += order.Quantity * order.Price * (1 - s.fee)
+			s.accountInfo.Balances[assetBalanceIdx].Free = model.TruncateFloat(s.accountInfo.Balances[assetBalanceIdx].Free - order.Quantity)
+			s.accountInfo.Balances[quoteBalanceIdx].Free = model.TruncateFloat(s.accountInfo.Balances[quoteBalanceIdx].Free + (order.Quantity * order.Price * (1 - s.fee)))
 		}
 
 		//TODO: discount using BNB as commission asset
@@ -89,14 +94,14 @@ func (s *SimulatedMarket) NewOrder(order model.OrderRequest) error {
 			IsBestMatch:     true,
 		}
 
-		s.tradeList = append(s.tradeList, trade)
+		s.tradeList = append(s.tradeList, &trade)
 	} else {
 		if order.Side == model.BUY {
-			s.accountInfo.Balances[quoteBalanceIdx].Free -= order.Quantity * order.Price * (1 + s.fee)
-			s.accountInfo.Balances[quoteBalanceIdx].Locked += order.Quantity * order.Price * (1 + s.fee)
+			s.accountInfo.Balances[quoteBalanceIdx].Free = model.TruncateFloat(s.accountInfo.Balances[quoteBalanceIdx].Free - (order.Quantity * order.Price * (1 + s.fee)))
+			s.accountInfo.Balances[quoteBalanceIdx].Locked = model.TruncateFloat(s.accountInfo.Balances[quoteBalanceIdx].Locked + (order.Quantity * order.Price * (1 + s.fee)))
 		} else if order.Side == model.SELL {
-			s.accountInfo.Balances[assetBalanceIdx].Free -= order.Quantity
-			s.accountInfo.Balances[assetBalanceIdx].Locked += order.Quantity
+			s.accountInfo.Balances[assetBalanceIdx].Free = model.TruncateFloat(s.accountInfo.Balances[assetBalanceIdx].Free - order.Quantity)
+			s.accountInfo.Balances[assetBalanceIdx].Locked = model.TruncateFloat(s.accountInfo.Balances[assetBalanceIdx].Locked + order.Quantity)
 		}
 	}
 
@@ -117,13 +122,13 @@ func (s *SimulatedMarket) NewOrder(order model.OrderRequest) error {
 		Fills:               nil,
 	}
 
-	s.orderList = append(s.orderList, orderResp)
+	s.orderList = append(s.orderList, &orderResp)
 
 	return nil
 }
 
-func (s *SimulatedMarket) OpenOrders(symbol string) []model.OrderResponseFull {
-	var openOrders []model.OrderResponseFull
+func (s *SimulatedMarket) OpenOrders(symbol string) []*model.OrderResponseFull {
+	var openOrders []*model.OrderResponseFull
 
 	for _, order := range s.orderList {
 		if order.Status == model.NEW && order.Symbol == symbol {
@@ -134,7 +139,7 @@ func (s *SimulatedMarket) OpenOrders(symbol string) []model.OrderResponseFull {
 	return openOrders
 }
 
-func (s *SimulatedMarket) OrderHistory() []model.OrderResponseFull {
+func (s *SimulatedMarket) OrderHistory() []*model.OrderResponseFull {
 	return s.orderList
 }
 
@@ -148,7 +153,7 @@ func (s *SimulatedMarket) CancelOrder(orderId string) error {
 				return errors.New(fmt.Sprintf("Could not find balances for quote:%s", quote))
 			}
 
-			s.accountInfo.Balances[quoteBalanceIdx].Free += s.accountInfo.Balances[quoteBalanceIdx].Locked
+			s.accountInfo.Balances[quoteBalanceIdx].Free = model.TruncateFloat(s.accountInfo.Balances[quoteBalanceIdx].Free + s.accountInfo.Balances[quoteBalanceIdx].Locked)
 			s.accountInfo.Balances[quoteBalanceIdx].Locked = 0
 
 			return nil
@@ -170,7 +175,7 @@ func (s *SimulatedMarket) Balance(asset string) (model.Balance, error) {
 	return model.Balance{}, errors.New("balance for asset " + asset + " does not exist")
 }
 
-func (s *SimulatedMarket) Trades() []model.Trade {
+func (s *SimulatedMarket) Trades() []*model.Trade {
 	return s.tradeList
 }
 
@@ -201,7 +206,7 @@ func (s *SimulatedMarket) Deposit(asset string, qty float64) {
 			Locked: 0,
 		})
 	} else {
-		s.accountInfo.Balances[balanceIdx].Free += qty
+		s.accountInfo.Balances[balanceIdx].Free = model.TruncateFloat(s.accountInfo.Balances[balanceIdx].Free + qty)
 	}
 }
 

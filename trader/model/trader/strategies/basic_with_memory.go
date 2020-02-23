@@ -34,8 +34,15 @@ func (s *BasicWithMemoryStrategy) ComputeDecision(prediction predictor.Predictio
 
 	pred5, pred10, pred100 := s.computePredictors(prediction.Pred5, prediction.Pred10, prediction.Pred100)
 
-	if len(s.PriceHistory) < s.HistoryLength || s.historyGetDecisionCount(trader.BUY) <
-		math.Round(float64(s.HistoryLength)/2) {
+	var priceDelta, predDelta float64
+
+	if len(s.PriceHistory) >= s.HistoryLength {
+		priceDelta = s.historyGetPriceDelta()
+		predDelta = s.historyGetPred5Delta()
+	}
+
+	if len(s.PriceHistory) < s.HistoryLength || (s.historyGetDecisionCount(trader.BUY) <
+		math.Round(float64(s.HistoryLength)/2) && priceDelta != -1 && predDelta != -1) {
 
 		if ((pred5 * s.Config.BuyPred5Mod) + (pred10 * s.Config.BuyPred10Mod) + (pred100 * s.Config.BuyPred100Mod)) > 2 {
 			if buyQty := s.BuySize(prediction, coinNetWorth, totalNetWorth, balance, fee); buyQty > 0 {
@@ -49,8 +56,8 @@ func (s *BasicWithMemoryStrategy) ComputeDecision(prediction predictor.Predictio
 		}
 	}
 
-	if len(s.PriceHistory) < s.HistoryLength || s.historyGetDecisionCount(trader.SELL) <
-		math.Round(float64(s.HistoryLength)/2) {
+	if len(s.PriceHistory) < s.HistoryLength || (s.historyGetDecisionCount(trader.SELL) <
+		math.Round(float64(s.HistoryLength)/2) && priceDelta != 1 && predDelta != 1) {
 
 		if ((pred5 * s.Config.SellPred5Mod) + (pred10 * s.Config.SellPred10Mod) + (pred100 * s.Config.SellPred100Mod)) < -2 {
 			for val, qty := range positions {
@@ -115,25 +122,24 @@ func (s *BasicWithMemoryStrategy) BuySize(prediction predictor.Prediction, coinN
 	maxCoinNetWorth := model.IntFloatMul(totalNetWorth, 0.3)
 	maxTransaction := model.IntFloatMul(totalNetWorth, 0.05)
 
-	if maxCoinNetWorth-coinNetWorth >= 10 && balance >= model.FloatToInt(10*(1+fee)) {
-		transaction := model.Max(10, model.Min(maxTransaction, model.IntFloatMul(maxCoinNetWorth-coinNetWorth, s.Config.BuyQtyMod)))
+	if maxCoinNetWorth-coinNetWorth >= 1000000000 && balance >= model.FloatToInt(10*(1+fee)) {
+		transaction := model.Max(1000000000, model.Min(maxTransaction, model.IntFloatMul(maxCoinNetWorth-coinNetWorth, s.Config.BuyQtyMod)))
 		transactionWFee := model.IntFloatMul(transaction, 1+fee)
 
 		if transactionWFee < balance {
 			return model.IntToFloat(transaction) / prediction.CloseValue
 		} else {
-			return model.IntToFloat(balance) / (prediction.CloseValue * (1 + fee))
+			return model.IntToFloat(balance-1) / (prediction.CloseValue * (1 + fee))
 		}
 	} else {
 		return 0.0
 	}
-
 }
 
 func (s *BasicWithMemoryStrategy) SellSize(prediction predictor.Prediction, positionQty float64, coinValue int64) float64 {
 	proposedQty := positionQty * s.Config.SellQtyMod
 
-	if model.IntFloatMul(coinValue, proposedQty) > 10 {
+	if model.IntFloatMul(coinValue, proposedQty) > 1000000000 {
 		return proposedQty
 	} else {
 		return 0.0

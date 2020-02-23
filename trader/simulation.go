@@ -25,8 +25,7 @@ func NewSimulation(predictions *[]predictor.Prediction, strategy trader.Strategy
 	marketEnt.Deposit("USDT", initialBalance)
 	return &Simulation{
 		Predictions: predictions,
-		Trader: *trader.NewTrader(config,
-			*market.NewAccountant(marketEnt, model.FloatToInt(initialBalance), fee),
+		Trader: *trader.NewTrader(*market.NewAccountant(marketEnt, model.FloatToInt(initialBalance), fee),
 			predictor.NewSimulatedPredictor(uncertainty), strategy, keepRecords),
 		Logging: keepRecords,
 	}
@@ -68,6 +67,8 @@ func (sim *Simulation) Run() {
 					fmt.Sprintf("%d", len(sim.Trader.Accountant.GetPositions(pred.Coin)))}
 			}
 		}
+
+		//sim.Trader.Accountant.SyncWithMarket()
 	}
 
 	if sim.Logging {

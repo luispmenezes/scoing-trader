@@ -25,17 +25,17 @@ const path string = "/predictor/latest/"
 var coins = []string{"BTCUSDT", "ETHUSDT", "BNBUSDT", "LTCUSDT", "XRPUSDT"}
 
 func NewLive(serverHost string, serverPort string, timeout int) *Live {
-	config := &strategies.BasicConfig{
-		BuyPred5Mod:    2.0251376282249756,
-		BuyPred10Mod:   0.5873073841927829,
-		BuyPred100Mod:  0.5043322053305296,
-		SellPred5Mod:   1.2969923715289462,
-		SellPred10Mod:  1.16495904843373,
-		SellPred100Mod: 0.8470197466391618,
-		StopLoss:       -0.2135418301481863,
-		ProfitCap:      0.11912187551817349,
-		BuyQtyMod:      0.6591540134743608,
-		SellQtyMod:     0.6547519264694094,
+	config := &strategies.BasicWithMemoryConfig{
+		BuyPred5Mod:    1.064582988619854,
+		BuyPred10Mod:   0.7180806459020486,
+		BuyPred100Mod:  2.6448109927782526,
+		SellPred5Mod:   0.394767696058713,
+		SellPred10Mod:  0.5402994113125981,
+		SellPred100Mod: 2.344851136724181,
+		StopLoss:       -0.003961030174404023,
+		ProfitCap:      0.025477934544296355,
+		BuyQtyMod:      0.8662148823175331,
+		SellQtyMod:     0.9051123877251703,
 	}
 
 	marketEnt := market.NewSimulatedMarket(0, 0.001)
@@ -45,10 +45,10 @@ func NewLive(serverHost string, serverPort string, timeout int) *Live {
 		HttpClient: http.Client{Timeout: time.Duration(timeout) * time.Second},
 		ServerHost: serverHost,
 		ServerPort: serverPort,
-		Trader: *trader.NewTrader(config,
+		Trader: *trader.NewTrader(
 			*market.NewAccountant(marketEnt, model.FloatToInt(1000), 0.001),
 			predictor.NewSimulatedPredictor(0),
-			strategies.NewBasicStrategy(config.ToSlice()), true),
+			strategies.NewBasicWithMemoryStrategy(config.ToSlice(), 10), true),
 	}
 }
 

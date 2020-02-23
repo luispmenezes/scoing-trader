@@ -60,16 +60,16 @@ func TrainingData(serverEndpoint string, startTime time.Time, endTime time.Time,
 
 func RunSingleSim() {
 	conf := strategies.BasicWithMemoryConfig{
-		BuyPred5Mod:    2.6809206329479554,
-		BuyPred10Mod:   1.7064990556801447,
-		BuyPred100Mod:  0.09743963941547748,
-		SellPred5Mod:   2.541286321117902,
-		SellPred10Mod:  1.8694827401857466,
-		SellPred100Mod: 2.8514328946070377,
-		StopLoss:       -0.2090242723175535,
-		ProfitCap:      0.10027724036138984,
-		BuyQtyMod:      0.05966509880121879,
-		SellQtyMod:     0.3207395712639675,
+		BuyPred5Mod:    1.064582988619854,
+		BuyPred10Mod:   0.7180806459020486,
+		BuyPred100Mod:  2.6448109927782526,
+		SellPred5Mod:   0.394767696058713,
+		SellPred10Mod:  0.5402994113125981,
+		SellPred100Mod: 2.344851136724181,
+		StopLoss:       -0.003961030174404023,
+		ProfitCap:      0.025477934544296355,
+		BuyQtyMod:      0.8662148823175331,
+		SellQtyMod:     0.9051123877251703,
 	}
 
 	var _, err = os.Stat("trader.log")
@@ -90,16 +90,16 @@ func RunSingleSim() {
 		fmt.Println(model.IntToString(simulation.Trader.Accountant.NetWorth()) + "$")
 	}
 	conf2 := strategies.BasicConfig{
-		BuyPred5Mod:    2.6809206329479554,
-		BuyPred10Mod:   1.7064990556801447,
-		BuyPred100Mod:  0.09743963941547748,
-		SellPred5Mod:   2.541286321117902,
-		SellPred10Mod:  1.8694827401857466,
-		SellPred100Mod: 2.8514328946070377,
-		StopLoss:       -0.2090242723175535,
-		ProfitCap:      0.10027724036138984,
-		BuyQtyMod:      0.05966509880121879,
-		SellQtyMod:     0.3207395712639675,
+		BuyPred5Mod:    1.064582988619854,
+		BuyPred10Mod:   0.7180806459020486,
+		BuyPred100Mod:  2.6448109927782526,
+		SellPred5Mod:   0.394767696058713,
+		SellPred10Mod:  0.5402994113125981,
+		SellPred100Mod: 2.344851136724181,
+		StopLoss:       -0.003961030174404023,
+		ProfitCap:      0.025477934544296355,
+		BuyQtyMod:      0.8662148823175331,
+		SellQtyMod:     0.9051123877251703,
 	}
 	strategy2 := strategies.NewBasicStrategy(conf2.ToSlice())
 	simulation2 := NewSimulation(&predictions, strategy2, &conf2, 1000, 0.001, 0, true)
@@ -114,10 +114,12 @@ func RunEvolution() {
 		InitialBalance: 1000,
 		Fee:            0.001,
 		Uncertainty:    0,
-		GenerationSize: 400,
-		NumGenerations: 5,
+		GenerationSize: 200,
+		NumGenerations: 10,
 		MutationRate:   0.4,
-		StartingPoint:  nil,
+		StartingPoint: []float64{1.064582988619854, 0.7180806459020486, 2.6448109927782526, 0.394767696058713,
+			0.5402994113125981, 2.344851136724181, -0.003961030174404023, 0.025477934544296355, 0.8662148823175331,
+			0.9051123877251703},
 	}
 
 	log.Println("Starting Evo...")

@@ -196,3 +196,12 @@ func (a *Accountant) ToString() string {
 func (a *Accountant) GetTimeStamp() int64 {
 	return time.Now().UnixNano() / int64(time.Millisecond)
 }
+
+func (a *Accountant) SyncWithMarket() {
+	marketBalance, err := a.Market.Balance("USDT")
+
+	if err == nil && a.Balance != model.FloatToInt(marketBalance.Free) {
+		panic(fmt.Sprintf("Incoherent balance Acc:%d Market:%f", a.Balance, marketBalance.Free))
+	}
+
+}
