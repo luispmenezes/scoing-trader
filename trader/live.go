@@ -2,11 +2,11 @@ package trader
 
 import (
 	"encoding/json"
+	"github.com/shopspring/decimal"
 	"log"
 	"math"
 	"net/http"
 	"scoing-trader/trader/model/market"
-	"scoing-trader/trader/model/market/model"
 	"scoing-trader/trader/model/predictor"
 	"scoing-trader/trader/model/trader"
 	"scoing-trader/trader/model/trader/strategies"
@@ -38,15 +38,15 @@ func NewLive(serverHost string, serverPort string, timeout int) *Live {
 		SellQtyMod:     0.9051123877251703,
 	}
 
-	marketEnt := market.NewSimulatedMarket(0, 0.001)
-	marketEnt.Deposit("USDT", 1000)
+	marketEnt := market.NewSimulatedMarket(0, decimal.NewFromFloat(0.001))
+	marketEnt.Deposit("USDT", decimal.NewFromInt(1000))
 
 	return &Live{
 		HttpClient: http.Client{Timeout: time.Duration(timeout) * time.Second},
 		ServerHost: serverHost,
 		ServerPort: serverPort,
 		Trader: *trader.NewTrader(
-			*market.NewAccountant(marketEnt, model.FloatToInt(1000), 0.001),
+			*market.NewAccountant(marketEnt, decimal.NewFromInt(1000), decimal.NewFromFloat(0.001)),
 			predictor.NewSimulatedPredictor(0),
 			strategies.NewBasicWithMemoryStrategy(config.ToSlice(), 10), true),
 	}
@@ -97,7 +97,7 @@ func (l *Live) Run() {
 			lastCoinTimestamp, exists := lastTimestamps[coin]
 
 			if !exists || !prediction.Timestamp.Equal(lastCoinTimestamp) {
-				err := l.Trader.Accountant.UpdateAssetValue(coin, model.FloatToInt(prediction.CloseValue), prediction.Timestamp)
+				err := l.Trader.Accountant.UpdateAssetValue(coin, decimal.NewFromFloat(prediction.CloseValue), prediction.Timestamp)
 				if err != nil {
 					panic(err)
 				}

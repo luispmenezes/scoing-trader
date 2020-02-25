@@ -1,5 +1,7 @@
 package model
 
+import "github.com/shopspring/decimal"
+
 type Market interface {
 	NewOrder(order OrderRequest) error
 	OpenOrders(symbol string) []*OrderResponseFull
@@ -9,7 +11,7 @@ type Market interface {
 	Balance(asset string) (Balance, error)
 	Trades() []*Trade
 	UpdateInformation()
-	CoinValue(asset string) (float64, error)
-	Deposit(asset string, qty float64)
-	UpdateCoinValue(asset string, value float64)
+	CoinValue(asset string) (decimal.Decimal, error)
+	Deposit(asset string, qty decimal.Decimal)
+	UpdateCoinValue(asset string, value decimal.Decimal)
 }

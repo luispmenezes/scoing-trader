@@ -3,11 +3,11 @@ package trader
 import (
 	"encoding/csv"
 	"fmt"
+	"github.com/shopspring/decimal"
 	"log"
 	"math"
 	"os"
 	"scoing-trader/trader/model/market"
-	"scoing-trader/trader/model/market/model"
 	"scoing-trader/trader/model/predictor"
 	"scoing-trader/trader/model/trader"
 	"sort"
@@ -19,13 +19,13 @@ type Simulation struct {
 	Logging     bool
 }
 
-func NewSimulation(predictions *[]predictor.Prediction, strategy trader.Strategy, config trader.StrategyConfig, initialBalance float64, fee float64,
+func NewSimulation(predictions *[]predictor.Prediction, strategy trader.Strategy, config trader.StrategyConfig, initialBalance decimal.Decimal, fee decimal.Decimal,
 	uncertainty float64, keepRecords bool) *Simulation {
-	marketEnt := market.NewSimulatedMarket(0, 0.001)
+	marketEnt := market.NewSimulatedMarket(0, fee)
 	marketEnt.Deposit("USDT", initialBalance)
 	return &Simulation{
 		Predictions: predictions,
-		Trader: *trader.NewTrader(*market.NewAccountant(marketEnt, model.FloatToInt(initialBalance), fee),
+		Trader: *trader.NewTrader(*market.NewAccountant(marketEnt, initialBalance, fee),
 			predictor.NewSimulatedPredictor(uncertainty), strategy, keepRecords),
 		Logging: keepRecords,
 	}
@@ -37,7 +37,7 @@ func (sim *Simulation) Run() {
 	var historyTrader = make(map[string][]string)
 
 	for _, pred := range *sim.Predictions {
-		err := sim.Trader.Accountant.UpdateAssetValue(pred.Coin, model.FloatToInt(pred.CloseValue), pred.Timestamp)
+		err := sim.Trader.Accountant.UpdateAssetValue(pred.Coin, decimal.NewFromFloat(pred.CloseValue), pred.Timestamp)
 		if err != nil {
 			panic(err)
 		}

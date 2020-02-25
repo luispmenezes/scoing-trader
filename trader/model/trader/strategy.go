@@ -2,15 +2,16 @@ package trader
 
 import (
 	"fmt"
+	"github.com/shopspring/decimal"
 	"scoing-trader/trader/model/predictor"
 	"time"
 )
 
 type Strategy interface {
-	ComputeDecision(prediction predictor.Prediction, positions map[int64]float64, coinNetWorth int64,
-		totalNetWorth int64, coinValue int64, balance int64, fee float64) map[DecisionType]Decision
-	BuySize(prediction predictor.Prediction, coinNetWorth int64, totalNetWorth int64, balance int64, fee float64) float64
-	SellSize(prediction predictor.Prediction, positionQty float64, coinValue int64) float64
+	ComputeDecision(prediction predictor.Prediction, positions map[string]decimal.Decimal, coinNetWorth decimal.Decimal,
+		totalNetWorth decimal.Decimal, coinValue decimal.Decimal, balance decimal.Decimal, fee decimal.Decimal) map[DecisionType]Decision
+	BuySize(prediction predictor.Prediction, coinNetWorth decimal.Decimal, totalNetWorth decimal.Decimal, balance decimal.Decimal, fee decimal.Decimal) decimal.Decimal
+	SellSize(prediction predictor.Prediction, positionQty decimal.Decimal, coinValue decimal.Decimal) decimal.Decimal
 }
 
 type StrategyConfig interface {
@@ -25,8 +26,8 @@ type StrategyConfig interface {
 type Decision struct {
 	EventType DecisionType
 	Coin      string
-	Qty       float64
-	Val       int64
+	Qty       decimal.Decimal
+	Val       decimal.Decimal
 }
 
 type DecisionType string
@@ -41,17 +42,17 @@ type TradeRecord struct {
 	Timestamp   time.Time
 	Coin        string
 	Event       DecisionType
-	Qty         float64
-	Value       float64
-	Transaction float64
-	Profit      float64
+	Qty         decimal.Decimal
+	Value       decimal.Decimal
+	Transaction decimal.Decimal
+	Profit      decimal.Decimal
 }
 
 func (t *TradeRecord) ToString() string {
-	strRecord := fmt.Sprintf("## %s : (%s) - %s -- Qty:%f Value:%f$ Trans:%f$", t.Timestamp, t.Event, t.Coin,
+	strRecord := fmt.Sprintf("## %s : (%s) - %s -- Qty:%s Value:%s$ Trans:%s$", t.Timestamp, t.Event, t.Coin,
 		t.Qty, t.Value, t.Transaction)
 	if t.Event != BUY {
-		strRecord += fmt.Sprintf(" Profit: %f$", t.Profit)
+		strRecord += fmt.Sprintf(" Profit: %s$", t.Profit)
 	}
 	return strRecord
 }

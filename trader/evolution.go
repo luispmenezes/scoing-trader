@@ -1,9 +1,9 @@
 package trader
 
 import (
+	"github.com/shopspring/decimal"
 	"log"
 	"math/rand"
-	"scoing-trader/trader/model/market/model"
 	"scoing-trader/trader/model/predictor"
 	"scoing-trader/trader/model/trader"
 	"scoing-trader/trader/model/trader/strategies"
@@ -14,8 +14,8 @@ import (
 
 type Evolution struct {
 	Predictions    []predictor.Prediction
-	InitialBalance float64
-	Fee            float64
+	InitialBalance decimal.Decimal
+	Fee            decimal.Decimal
 	Uncertainty    float64
 	GenerationSize int
 	NumGenerations int
@@ -25,7 +25,7 @@ type Evolution struct {
 }
 
 type Specimen struct {
-	Fitness int64
+	Fitness decimal.Decimal
 	Config  trader.StrategyConfig
 }
 
@@ -48,7 +48,7 @@ func (evo *Evolution) Run() Specimen {
 
 		specimenPool = append(specimenPool,
 			Specimen{
-				Fitness: 0,
+				Fitness: decimal.Zero,
 				Config:  &config,
 			})
 	}
@@ -57,13 +57,13 @@ func (evo *Evolution) Run() Specimen {
 		testedSpecimens := evo.simulateGeneration(specimenPool)
 		newCandidates := evo.selectCandidates(testedSpecimens, 2)
 
-		log.Printf("Generation %d Fitness: %s", i, model.IntToString(newCandidates[0].Fitness))
+		log.Printf("Generation %d Fitness: %s", i, newCandidates[0].Fitness)
 		log.Println(newCandidates[0].Config.ToSlice())
 
-		if len(candidates) == 0 || newCandidates[0].Fitness > candidates[0].Fitness {
+		if len(candidates) == 0 || newCandidates[0].Fitness.GreaterThan(candidates[0].Fitness) {
 			candidates = newCandidates
 		} else {
-			log.Printf("New Generation worse than overall best (%s)", model.IntToString(candidates[0].Fitness))
+			log.Printf("New Generation worse than overall best (%s)", candidates[0].Fitness)
 		}
 
 		specimenPool = evo.breed(candidates)
@@ -89,7 +89,7 @@ func (evo *Evolution) breed(candidates []Specimen) []Specimen {
 
 		newGeneration = append(newGeneration,
 			Specimen{
-				Fitness: 0,
+				Fitness: decimal.Zero,
 				Config:  child,
 			})
 	}
@@ -126,7 +126,7 @@ func (evo *Evolution) runSingleSimulation(specimen Specimen, predictions *[]pred
 
 func (evo *Evolution) selectCandidates(specimens []Specimen, numCandidates int) []Specimen {
 	sort.Slice(specimens, func(i, j int) bool {
-		return specimens[i].Fitness > specimens[j].Fitness
+		return specimens[i].Fitness.GreaterThan(specimens[j].Fitness)
 	})
 	return specimens[0:numCandidates]
 }

@@ -3,10 +3,10 @@ package trader
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/shopspring/decimal"
 	"log"
 	"net/http"
 	"os"
-	"scoing-trader/trader/model/market/model"
 	"scoing-trader/trader/model/predictor"
 	"scoing-trader/trader/model/trader/strategies"
 	"strconv"
@@ -84,10 +84,10 @@ func RunSingleSim() {
 	strategy := strategies.NewBasicWithMemoryStrategy(conf.ToSlice(), 10)
 
 	for i := 0; i < 5; i++ {
-		simulation := NewSimulation(&predictions, strategy, &conf, 1000, 0.001, 0, true)
+		simulation := NewSimulation(&predictions, strategy, &conf, decimal.NewFromInt(1000), decimal.NewFromFloat(0.001), 0, true)
 		simulation.Run()
 
-		fmt.Println(model.IntToString(simulation.Trader.Accountant.NetWorth()) + "$")
+		fmt.Println(simulation.Trader.Accountant.NetWorth().String() + "$")
 	}
 	conf2 := strategies.BasicConfig{
 		BuyPred5Mod:    1.064582988619854,
@@ -102,17 +102,17 @@ func RunSingleSim() {
 		SellQtyMod:     0.9051123877251703,
 	}
 	strategy2 := strategies.NewBasicStrategy(conf2.ToSlice())
-	simulation2 := NewSimulation(&predictions, strategy2, &conf2, 1000, 0.001, 0, true)
+	simulation2 := NewSimulation(&predictions, strategy2, &conf2, decimal.NewFromInt(1000), decimal.NewFromFloat(0.001), 0, true)
 	simulation2.Run()
 
-	fmt.Println(model.IntToString(simulation2.Trader.Accountant.NetWorth()) + "$  <--- Sem MEM")
+	fmt.Println(simulation2.Trader.Accountant.NetWorth().String() + "$  <--- Sem MEM")
 }
 
 func RunEvolution() {
 	evo := Evolution{
 		Predictions:    predictions,
-		InitialBalance: 1000,
-		Fee:            0.001,
+		InitialBalance: decimal.NewFromInt(1000),
+		Fee:            decimal.NewFromFloat(0.001),
 		Uncertainty:    0,
 		GenerationSize: 200,
 		NumGenerations: 10,
@@ -141,7 +141,7 @@ func RunEvolution() {
 	log.SetOutput(logFile)
 
 	strategy := strategies.NewBasicWithMemoryStrategy(result.Config.ToSlice(), 10)
-	simulation := NewSimulation(&predictions, strategy, result.Config, 1000, 0.001, 0, true)
+	simulation := NewSimulation(&predictions, strategy, result.Config, decimal.NewFromInt(1000), decimal.NewFromFloat(0.001), 0, true)
 	simulation.Run()
 
 	log.Println(simulation.Trader.Accountant.NetWorth())

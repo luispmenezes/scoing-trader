@@ -3,6 +3,7 @@ package market
 import (
 	"errors"
 	"fmt"
+	"github.com/shopspring/decimal"
 	"math/rand"
 	"scoing-trader/trader/model/market/model"
 )
@@ -11,17 +12,17 @@ type SimulatedMarket struct {
 	accountInfo  model.AccountInformation
 	orderList    []*model.OrderResponseFull
 	tradeList    []*model.Trade
-	coinValues   map[string]float64
+	coinValues   map[string]decimal.Decimal
 	unfilledRate float64
-	fee          float64
+	fee          decimal.Decimal
 }
 
-func NewSimulatedMarket(unfilledRate float64, fee float64) *SimulatedMarket {
+func NewSimulatedMarket(unfilledRate float64, fee decimal.Decimal) *SimulatedMarket {
 	return &SimulatedMarket{
 		accountInfo:  model.AccountInformation{},
 		orderList:    make([]*model.OrderResponseFull, 0),
 		tradeList:    make([]*model.Trade, 0),
-		coinValues:   make(map[string]float64),
+		coinValues:   make(map[string]decimal.Decimal),
 		unfilledRate: unfilledRate,
 		fee:          fee,
 	}
@@ -33,12 +34,12 @@ func (s *SimulatedMarket) NewOrder(order model.OrderRequest) error {
 	}
 
 	status := model.NEW
-	var execQty float64
-	var cumQty float64
+	var execQty decimal.Decimal
+	var cumQty decimal.Decimal
 
 	assetBalanceIdx, asset, quoteBalanceIdx, quote := s.getAssetQuoteIdx(order.Symbol)
 
-	if order.Price == 0.0 {
+	if order.Price.IsZero() {
 		order.Price = s.coinValues[order.Symbol]
 	}
 
@@ -49,20 +50,20 @@ func (s *SimulatedMarket) NewOrder(order model.OrderRequest) error {
 	if assetBalanceIdx == -1 {
 		s.accountInfo.Balances = append(s.accountInfo.Balances, model.Balance{
 			Asset:  asset,
-			Free:   0,
-			Locked: 0,
+			Free:   decimal.Zero,
+			Locked: decimal.Zero,
 		})
 
 		assetBalanceIdx = len(s.accountInfo.Balances) - 1
 	}
 
-	if order.Side == model.SELL && s.accountInfo.Balances[assetBalanceIdx].Free < order.Quantity {
-		return errors.New(fmt.Sprintf("asset balance for %s insufficent (%f)", asset, order.Quantity))
+	if order.Side == model.SELL && s.accountInfo.Balances[assetBalanceIdx].Free.LessThan(order.Quantity) {
+		return errors.New(fmt.Sprintf("asset balance for %s insufficent (%s)", asset, order.Quantity))
 	}
 
-	if order.Side == model.BUY && s.accountInfo.Balances[quoteBalanceIdx].Free < order.Quantity*order.Price*(1+s.fee) {
-		return errors.New(fmt.Sprintf("balance for %s (%f) doesn't cover transaction (%f)", quote,
-			s.accountInfo.Balances[quoteBalanceIdx].Free, order.Quantity*order.Price*(1+s.fee)))
+	if order.Side == model.BUY && s.accountInfo.Balances[quoteBalanceIdx].Free.LessThan(order.Quantity.Mul(order.Price).Mul(decimal.NewFromInt(1).Add(s.fee))) {
+		return errors.New(fmt.Sprintf("balance for %s (%s) doesn't cover transaction (%s)", quote,
+			s.accountInfo.Balances[quoteBalanceIdx].Free, order.Quantity.Mul(order.Price).Mul(decimal.NewFromInt(1).Add(s.fee))))
 	}
 
 	if rand.Float64() >= s.unfilledRate {
@@ -71,11 +72,13 @@ func (s *SimulatedMarket) NewOrder(order model.OrderRequest) error {
 		cumQty = order.QuoteOrderQty
 
 		if order.Side == model.BUY {
-			s.accountInfo.Balances[quoteBalanceIdx].Free = model.TruncateFloat(s.accountInfo.Balances[quoteBalanceIdx].Free - (order.Quantity * order.Price * (1 + s.fee)))
-			s.accountInfo.Balances[assetBalanceIdx].Free = model.TruncateFloat(s.accountInfo.Balances[assetBalanceIdx].Free + order.Quantity)
+			s.accountInfo.Balances[quoteBalanceIdx].Free = s.accountInfo.Balances[quoteBalanceIdx].Free.Sub(
+				order.Quantity.Mul(order.Price).Mul(decimal.NewFromInt(1).Add(s.fee)))
+			s.accountInfo.Balances[assetBalanceIdx].Free = s.accountInfo.Balances[assetBalanceIdx].Free.Add(order.Quantity)
 		} else if order.Side == model.SELL {
-			s.accountInfo.Balances[assetBalanceIdx].Free = model.TruncateFloat(s.accountInfo.Balances[assetBalanceIdx].Free - order.Quantity)
-			s.accountInfo.Balances[quoteBalanceIdx].Free = model.TruncateFloat(s.accountInfo.Balances[quoteBalanceIdx].Free + (order.Quantity * order.Price * (1 - s.fee)))
+			s.accountInfo.Balances[assetBalanceIdx].Free = s.accountInfo.Balances[assetBalanceIdx].Free.Sub(order.Quantity)
+			s.accountInfo.Balances[quoteBalanceIdx].Free = s.accountInfo.Balances[quoteBalanceIdx].Free.Add(
+				order.Quantity.Mul(order.Price).Mul(decimal.NewFromInt(1).Sub(s.fee)))
 		}
 
 		//TODO: discount using BNB as commission asset
@@ -86,7 +89,7 @@ func (s *SimulatedMarket) NewOrder(order model.OrderRequest) error {
 			OrderListId:     0,
 			Price:           order.Price,
 			Qty:             order.Quantity,
-			Commission:      (order.Price * order.Quantity) * s.fee,
+			Commission:      order.Price.Mul(order.Quantity).Mul(s.fee),
 			CommissionAsset: "USDT",
 			Time:            0,
 			IsBuyer:         order.Side == model.BUY,
@@ -97,11 +100,13 @@ func (s *SimulatedMarket) NewOrder(order model.OrderRequest) error {
 		s.tradeList = append(s.tradeList, &trade)
 	} else {
 		if order.Side == model.BUY {
-			s.accountInfo.Balances[quoteBalanceIdx].Free = model.TruncateFloat(s.accountInfo.Balances[quoteBalanceIdx].Free - (order.Quantity * order.Price * (1 + s.fee)))
-			s.accountInfo.Balances[quoteBalanceIdx].Locked = model.TruncateFloat(s.accountInfo.Balances[quoteBalanceIdx].Locked + (order.Quantity * order.Price * (1 + s.fee)))
+			s.accountInfo.Balances[quoteBalanceIdx].Free = s.accountInfo.Balances[quoteBalanceIdx].Free.Sub(
+				order.Quantity.Mul(order.Price).Mul(decimal.NewFromInt(1).Add(s.fee)))
+			s.accountInfo.Balances[quoteBalanceIdx].Locked = s.accountInfo.Balances[quoteBalanceIdx].Locked.Add(
+				order.Quantity.Mul(order.Price).Mul(decimal.NewFromInt(1).Add(s.fee)))
 		} else if order.Side == model.SELL {
-			s.accountInfo.Balances[assetBalanceIdx].Free = model.TruncateFloat(s.accountInfo.Balances[assetBalanceIdx].Free - order.Quantity)
-			s.accountInfo.Balances[assetBalanceIdx].Locked = model.TruncateFloat(s.accountInfo.Balances[assetBalanceIdx].Locked + order.Quantity)
+			s.accountInfo.Balances[assetBalanceIdx].Free = s.accountInfo.Balances[assetBalanceIdx].Free.Sub(order.Quantity)
+			s.accountInfo.Balances[assetBalanceIdx].Locked = s.accountInfo.Balances[assetBalanceIdx].Locked.Add(order.Quantity)
 		}
 	}
 
@@ -153,8 +158,8 @@ func (s *SimulatedMarket) CancelOrder(orderId string) error {
 				return errors.New(fmt.Sprintf("Could not find balances for quote:%s", quote))
 			}
 
-			s.accountInfo.Balances[quoteBalanceIdx].Free = model.TruncateFloat(s.accountInfo.Balances[quoteBalanceIdx].Free + s.accountInfo.Balances[quoteBalanceIdx].Locked)
-			s.accountInfo.Balances[quoteBalanceIdx].Locked = 0
+			s.accountInfo.Balances[quoteBalanceIdx].Free = s.accountInfo.Balances[quoteBalanceIdx].Free.Add(s.accountInfo.Balances[quoteBalanceIdx].Locked)
+			s.accountInfo.Balances[quoteBalanceIdx].Locked = decimal.Zero
 
 			return nil
 		}
@@ -181,16 +186,16 @@ func (s *SimulatedMarket) Trades() []*model.Trade {
 
 func (s *SimulatedMarket) UpdateInformation() {}
 
-func (s *SimulatedMarket) CoinValue(asset string) (float64, error) {
+func (s *SimulatedMarket) CoinValue(asset string) (decimal.Decimal, error) {
 	coinVal, exists := s.coinValues[asset]
 	if exists {
 		return coinVal, nil
 	} else {
-		return 0.0, errors.New("asset " + asset + " does not exist")
+		return decimal.Zero, errors.New("asset " + asset + " does not exist")
 	}
 }
 
-func (s *SimulatedMarket) Deposit(asset string, qty float64) {
+func (s *SimulatedMarket) Deposit(asset string, qty decimal.Decimal) {
 	balanceIdx := -1
 
 	for idx, balance := range s.accountInfo.Balances {
@@ -203,14 +208,14 @@ func (s *SimulatedMarket) Deposit(asset string, qty float64) {
 		s.accountInfo.Balances = append(s.accountInfo.Balances, model.Balance{
 			Asset:  asset,
 			Free:   qty,
-			Locked: 0,
+			Locked: decimal.Zero,
 		})
 	} else {
-		s.accountInfo.Balances[balanceIdx].Free = model.TruncateFloat(s.accountInfo.Balances[balanceIdx].Free + qty)
+		s.accountInfo.Balances[balanceIdx].Free = s.accountInfo.Balances[balanceIdx].Free.Add(qty)
 	}
 }
 
-func (s *SimulatedMarket) UpdateCoinValue(asset string, value float64) {
+func (s *SimulatedMarket) UpdateCoinValue(asset string, value decimal.Decimal) {
 	s.coinValues[asset] = value
 }
 

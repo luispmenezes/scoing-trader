@@ -1,5 +1,7 @@
 package model
 
+import "github.com/shopspring/decimal"
+
 type AccountInformation struct {
 	MakerCommission  int64
 	TakerCommission  int64
@@ -15,8 +17,8 @@ type AccountInformation struct {
 
 type Balance struct {
 	Asset  string
-	Free   float64
-	Locked float64
+	Free   decimal.Decimal
+	Locked decimal.Decimal
 }
 
 type Trade struct {
@@ -24,9 +26,9 @@ type Trade struct {
 	Id              int64
 	OrderId         int64
 	OrderListId     int64
-	Price           float64
-	Qty             float64
-	Commission      float64
+	Price           decimal.Decimal
+	Qty             decimal.Decimal
+	Commission      decimal.Decimal
 	CommissionAsset string
 	Time            int64
 	IsBuyer         bool

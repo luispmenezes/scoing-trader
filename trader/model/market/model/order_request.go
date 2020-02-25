@@ -1,16 +1,18 @@
 package model
 
+import "github.com/shopspring/decimal"
+
 type OrderRequest struct {
 	Symbol        string
 	Side          OrderSide
 	Type          OrderType
 	Timestamp     int64
 	TimeInForce   OrderTimeInForce
-	Quantity      float64
-	QuoteOrderQty float64
-	Price         float64
+	Quantity      decimal.Decimal
+	QuoteOrderQty decimal.Decimal
+	Price         decimal.Decimal
 	ClientOrderId string
-	StopPrice     float64
-	IcebergQty    float64
+	StopPrice     decimal.Decimal
+	IcebergQty    decimal.Decimal
 	ResponseType  OrderResponseType
 }

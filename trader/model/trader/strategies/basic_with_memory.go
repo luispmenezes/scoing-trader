@@ -1,8 +1,8 @@
 package strategies
 
 import (
+	"github.com/shopspring/decimal"
 	"math"
-	"scoing-trader/trader/model/market/model"
 	"scoing-trader/trader/model/predictor"
 	"scoing-trader/trader/model/trader"
 )
@@ -27,8 +27,8 @@ func NewBasicWithMemoryStrategy(slice []float64, historyLength int) *BasicWithMe
 	return basicWithMemoryStrategy
 }
 
-func (s *BasicWithMemoryStrategy) ComputeDecision(prediction predictor.Prediction, positions map[int64]float64,
-	coinNetWorth int64, coinValue int64, totalNetWorth int64, balance int64, fee float64) map[trader.DecisionType]trader.Decision {
+func (s *BasicWithMemoryStrategy) ComputeDecision(prediction predictor.Prediction, positions map[string]decimal.Decimal,
+	coinNetWorth decimal.Decimal, coinValue decimal.Decimal, totalNetWorth decimal.Decimal, balance decimal.Decimal, fee decimal.Decimal) map[trader.DecisionType]trader.Decision {
 
 	decisionMap := make(map[trader.DecisionType]trader.Decision)
 
@@ -45,12 +45,12 @@ func (s *BasicWithMemoryStrategy) ComputeDecision(prediction predictor.Predictio
 		math.Round(float64(s.HistoryLength)/2) && priceDelta != -1 && predDelta != -1) {
 
 		if ((pred5 * s.Config.BuyPred5Mod) + (pred10 * s.Config.BuyPred10Mod) + (pred100 * s.Config.BuyPred100Mod)) > 2 {
-			if buyQty := s.BuySize(prediction, coinNetWorth, totalNetWorth, balance, fee); buyQty > 0 {
+			if buyQty := s.BuySize(prediction, coinNetWorth, totalNetWorth, balance, fee); buyQty.GreaterThan(decimal.Zero) {
 				decisionMap[trader.BUY] = trader.Decision{
 					EventType: trader.BUY,
 					Coin:      prediction.Coin,
 					Qty:       buyQty,
-					Val:       model.FloatToInt(prediction.CloseValue),
+					Val:       decimal.NewFromFloat(prediction.CloseValue),
 				}
 			}
 		}
@@ -61,36 +61,24 @@ func (s *BasicWithMemoryStrategy) ComputeDecision(prediction predictor.Predictio
 
 		if ((pred5 * s.Config.SellPred5Mod) + (pred10 * s.Config.SellPred10Mod) + (pred100 * s.Config.SellPred100Mod)) < -2 {
 			for val, qty := range positions {
-				currentProfit := 1 - ((model.IntToFloat(val) / prediction.CloseValue) * (1 - fee))
-				if currentProfit < s.Config.StopLoss {
-					if sellQty := s.SellSize(prediction, qty, coinValue); sellQty > 0 {
+				decimalVal, _ := decimal.NewFromString(val)
+				currentProfit := decimal.NewFromInt(1).Sub(decimalVal.Div(decimal.NewFromFloat(prediction.CloseValue)).Mul(decimal.NewFromInt(1).Sub(fee)))
+				if (len(s.PriceHistory) < s.HistoryLength || (s.historyGetDecisionCount(trader.SELL) <
+					math.Round(float64(s.HistoryLength)/2) && priceDelta != 1 && predDelta != 1) &&
+					((pred5*s.Config.SellPred5Mod)+(pred10*s.Config.SellPred10Mod)+(pred100*s.Config.SellPred100Mod)) < -2 &&
+					currentProfit.LessThan(decimal.NewFromFloat(s.Config.StopLoss))) ||
+					currentProfit.GreaterThan(decimal.NewFromFloat(s.Config.ProfitCap)) {
+					if sellQty := s.SellSize(prediction, qty, coinValue); sellQty.GreaterThan(decimal.Zero) {
 						if sellDecision, exists := decisionMap[trader.SELL]; exists {
-							sellDecision.Qty += sellQty
+							sellDecision.Qty = sellDecision.Qty.Add(sellQty)
 						} else {
 							decisionMap[trader.SELL] = trader.Decision{
 								EventType: trader.SELL,
 								Coin:      prediction.Coin,
 								Qty:       sellQty,
-								Val:       val,
+								Val:       decimalVal,
 							}
 						}
-					}
-				}
-			}
-		}
-	}
-	for val, qty := range positions {
-		currentProfit := 1 - ((model.IntToFloat(val) / prediction.CloseValue) * (1 - fee))
-		if currentProfit > s.Config.ProfitCap {
-			if sellQty := s.SellSize(prediction, qty, coinValue); sellQty > 0 {
-				if sellDecision, exists := decisionMap[trader.SELL]; exists {
-					sellDecision.Qty += sellQty
-				} else {
-					decisionMap[trader.SELL] = trader.Decision{
-						EventType: trader.SELL,
-						Coin:      prediction.Coin,
-						Qty:       sellQty,
-						Val:       val,
 					}
 				}
 			}
@@ -101,8 +89,8 @@ func (s *BasicWithMemoryStrategy) ComputeDecision(prediction predictor.Predictio
 		decisionMap[trader.HOLD] = trader.Decision{
 			EventType: trader.HOLD,
 			Coin:      prediction.Coin,
-			Qty:       0,
-			Val:       0,
+			Qty:       decimal.Zero,
+			Val:       decimal.Zero,
 		}
 	}
 
@@ -116,33 +104,34 @@ func (s *BasicWithMemoryStrategy) ComputeDecision(prediction predictor.Predictio
 	return decisionMap
 }
 
-func (s *BasicWithMemoryStrategy) BuySize(prediction predictor.Prediction, coinNetWorth int64, totalNetWorth int64,
-	balance int64, fee float64) float64 {
+func (s *BasicWithMemoryStrategy) BuySize(prediction predictor.Prediction, coinNetWorth decimal.Decimal, totalNetWorth decimal.Decimal,
+	balance decimal.Decimal, fee decimal.Decimal) decimal.Decimal {
 
-	maxCoinNetWorth := model.IntFloatMul(totalNetWorth, 0.3)
-	maxTransaction := model.IntFloatMul(totalNetWorth, 0.05)
+	maxCoinNetWorth := totalNetWorth.Mul(decimal.NewFromFloat(0.3))
+	maxTransaction := totalNetWorth.Mul(decimal.NewFromFloat(0.05))
 
-	if maxCoinNetWorth-coinNetWorth >= 1000000000 && balance >= model.FloatToInt(10*(1+fee)) {
-		transaction := model.Max(1000000000, model.Min(maxTransaction, model.IntFloatMul(maxCoinNetWorth-coinNetWorth, s.Config.BuyQtyMod)))
-		transactionWFee := model.IntFloatMul(transaction, 1+fee)
+	if maxCoinNetWorth.Sub(coinNetWorth).GreaterThanOrEqual(decimal.NewFromInt(10)) &&
+		balance.GreaterThanOrEqual(decimal.NewFromInt(10).Mul(decimal.NewFromInt(1).Mul(fee))) {
+		transaction := decimal.Max(decimal.NewFromInt(10), decimal.Min(maxTransaction, maxCoinNetWorth.Sub(coinNetWorth).Mul(decimal.NewFromFloat(s.Config.BuyQtyMod))))
+		transactionWFee := transaction.Mul(decimal.NewFromInt(1).Add(fee))
 
-		if transactionWFee < balance {
-			return model.IntToFloat(transaction) / prediction.CloseValue
+		if transactionWFee.LessThan(balance) {
+			return transaction.Div(decimal.NewFromFloat(prediction.CloseValue))
 		} else {
-			return model.IntToFloat(balance-1) / (prediction.CloseValue * (1 + fee))
+			return balance.Sub(decimal.NewFromInt(1)).Div(decimal.NewFromFloat(prediction.CloseValue).Mul(decimal.NewFromInt(1).Add(fee)))
 		}
 	} else {
-		return 0.0
+		return decimal.Zero
 	}
 }
 
-func (s *BasicWithMemoryStrategy) SellSize(prediction predictor.Prediction, positionQty float64, coinValue int64) float64 {
-	proposedQty := positionQty * s.Config.SellQtyMod
+func (s *BasicWithMemoryStrategy) SellSize(prediction predictor.Prediction, positionQty decimal.Decimal, coinValue decimal.Decimal) decimal.Decimal {
+	proposedQty := positionQty.Mul(decimal.NewFromFloat(s.Config.SellQtyMod))
 
-	if model.IntFloatMul(coinValue, proposedQty) > 1000000000 {
+	if coinValue.Mul(proposedQty).GreaterThan(decimal.NewFromInt(10)) {
 		return proposedQty
 	} else {
-		return 0.0
+		return decimal.Zero
 	}
 }
 

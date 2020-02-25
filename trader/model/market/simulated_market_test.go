@@ -2,43 +2,44 @@ package market
 
 import (
 	"fmt"
+	"github.com/shopspring/decimal"
 	"scoing-trader/trader/model/market/model"
 	"testing"
 )
 
 func TestMarketDeposit(t *testing.T) {
-	market := NewSimulatedMarket(0, 0.001)
-	market.Deposit("USDT", 1000)
+	market := NewSimulatedMarket(0, decimal.NewFromFloat(0.001))
+	market.Deposit("USDT", decimal.NewFromInt(1000))
 
 	balance, err := market.Balance("USDT")
 
 	if err != nil {
 		t.Error("Coin balance not found")
 	} else {
-		if balance.Free != 1000 {
-			t.Error(fmt.Sprintf("Incorrect free balance got %f exepected %f", balance.Free, 1000.0))
+		if !balance.Free.Equal(decimal.NewFromInt(1000)) {
+			t.Error(fmt.Sprintf("Incorrect free balance got %s exepected %f", balance.Free, 1000.0))
 		}
-		if balance.Locked != 0 {
-			t.Error(fmt.Sprintf("Incorrect locked balance got %f exepected %f", balance.Locked, 0.0))
+		if !balance.Locked.IsZero() {
+			t.Error(fmt.Sprintf("Incorrect locked balance got %s exepected %f", balance.Locked, 0.0))
 		}
 	}
 }
 
 func TestMarketBuy(t *testing.T) {
-	market := NewSimulatedMarket(0, 0.001)
-	market.Deposit("USDT", 1000)
+	market := NewSimulatedMarket(0, decimal.NewFromFloat(0.001))
+	market.Deposit("USDT", decimal.NewFromInt(1000))
 	order := model.OrderRequest{
 		Symbol:        "BTCUSDT",
 		Side:          model.BUY,
 		Type:          model.MARKET,
 		Timestamp:     0,
 		TimeInForce:   model.GTC,
-		Quantity:      0.5,
-		QuoteOrderQty: 500,
-		Price:         1000,
+		Quantity:      decimal.NewFromFloat(0.5),
+		QuoteOrderQty: decimal.NewFromInt(500),
+		Price:         decimal.NewFromInt(1000),
 		ClientOrderId: "1234",
-		StopPrice:     1005,
-		IcebergQty:    0,
+		StopPrice:     decimal.NewFromInt(1005),
+		IcebergQty:    decimal.Zero,
 		ResponseType:  model.FULL,
 	}
 
@@ -64,8 +65,8 @@ func TestMarketBuy(t *testing.T) {
 	if errBTC != nil {
 		t.Error("Coin balance not found")
 	} else {
-		if balanceBTC.Free != 0.5 {
-			t.Error(fmt.Sprintf("Incorrect coin free balance got %f exepected %f", balanceBTC.Free, 0.5))
+		if !balanceBTC.Free.Equal(decimal.NewFromFloat(0.5)) {
+			t.Error(fmt.Sprintf("Incorrect coin free balance got %s exepected %f", balanceBTC.Free, 0.5))
 		}
 	}
 
@@ -73,27 +74,27 @@ func TestMarketBuy(t *testing.T) {
 	if errUSDT != nil {
 		t.Error("Coin balance not found")
 	} else {
-		if fmt.Sprintf("%.4f", balanceUSDT.Free) != "499.5000" {
-			t.Error(fmt.Sprintf("Incorrect coin free balance got %f exepected %f", balanceUSDT.Free, 499.5))
+		if !balanceUSDT.Free.Equal(decimal.NewFromFloat(499.5)) {
+			t.Error(fmt.Sprintf("Incorrect coin free balance got %s exepected %f", balanceUSDT.Free, 499.5))
 		}
 	}
 }
 
 func TestMarketUnfilled(t *testing.T) {
-	market := NewSimulatedMarket(1, 0.001)
-	market.Deposit("USDT", 1000)
+	market := NewSimulatedMarket(1, decimal.NewFromFloat(0.001))
+	market.Deposit("USDT", decimal.NewFromInt(1000))
 	order1 := model.OrderRequest{
 		Symbol:        "BTCUSDT",
 		Side:          model.BUY,
 		Type:          model.MARKET,
 		Timestamp:     0,
 		TimeInForce:   model.GTC,
-		Quantity:      0.1,
-		QuoteOrderQty: 100,
-		Price:         1000,
+		Quantity:      decimal.NewFromFloat(0.1),
+		QuoteOrderQty: decimal.NewFromInt(100),
+		Price:         decimal.NewFromInt(1000),
 		ClientOrderId: "1",
-		StopPrice:     1005,
-		IcebergQty:    0,
+		StopPrice:     decimal.NewFromInt(1005),
+		IcebergQty:    decimal.Zero,
 		ResponseType:  model.FULL,
 	}
 
@@ -113,12 +114,12 @@ func TestMarketUnfilled(t *testing.T) {
 		Type:          model.MARKET,
 		Timestamp:     0,
 		TimeInForce:   model.GTC,
-		Quantity:      0.1,
-		QuoteOrderQty: 100,
-		Price:         1000,
+		Quantity:      decimal.NewFromFloat(0.1),
+		QuoteOrderQty: decimal.NewFromInt(100),
+		Price:         decimal.NewFromInt(1000),
 		ClientOrderId: "2",
-		StopPrice:     1005,
-		IcebergQty:    0,
+		StopPrice:     decimal.NewFromInt(1005),
+		IcebergQty:    decimal.Zero,
 		ResponseType:  model.FULL,
 	}
 
@@ -132,8 +133,8 @@ func TestMarketUnfilled(t *testing.T) {
 
 	if errBalBTC != nil {
 		t.Error(errBalBTC)
-	} else if btcBalance.Free != 0 {
-		t.Error(fmt.Sprintf("Inavlid BTC balance. Expected 0 got %f", btcBalance.Free))
+	} else if !btcBalance.Free.IsZero() {
+		t.Error(fmt.Sprintf("Inavlid BTC balance. Expected 0 got %s", btcBalance.Free))
 	}
 
 	usdtBalance, errBalUSDT := market.Balance("USDT")
@@ -141,11 +142,11 @@ func TestMarketUnfilled(t *testing.T) {
 	if errBalUSDT != nil {
 		t.Error(usdtBalance)
 	} else {
-		if fmt.Sprintf("%.2f", usdtBalance.Free) != "899.90" {
-			t.Error(fmt.Sprintf("Inavlid USDT balance. Expected 899.90 got %f", btcBalance.Free))
+		if !usdtBalance.Free.Equal(decimal.NewFromFloat(899.9)) {
+			t.Error(fmt.Sprintf("Inavlid USDT balance. Expected 899.90 got %s", btcBalance.Free))
 		}
-		if fmt.Sprintf("%.2f", usdtBalance.Locked) != "100.10" {
-			t.Error(fmt.Sprintf("Incorrect locked balance. Expected 100.10 got %f", usdtBalance.Locked))
+		if !usdtBalance.Locked.Equal(decimal.NewFromFloat(100.1)) {
+			t.Error(fmt.Sprintf("Incorrect locked balance. Expected 100.10 got %s", usdtBalance.Locked))
 		}
 	}
 
@@ -156,11 +157,11 @@ func TestMarketUnfilled(t *testing.T) {
 	} else {
 		usdtBalance, _ := market.Balance("USDT")
 
-		if fmt.Sprintf("%.2f", usdtBalance.Free) != "1000.00" {
-			t.Error(fmt.Sprintf("Inavlid USDT balance. Expected 1000.00 got %f", btcBalance.Free))
+		if !usdtBalance.Free.Equal(decimal.NewFromInt(1000)) {
+			t.Error(fmt.Sprintf("Inavlid USDT balance. Expected 1000.00 got %s", usdtBalance.Free))
 		}
-		if fmt.Sprintf("%.2f", usdtBalance.Locked) != "0.00" {
-			t.Error(fmt.Sprintf("Incorrect locked balance. Expected 0.00 got %f", usdtBalance.Locked))
+		if !usdtBalance.Locked.IsZero() {
+			t.Error(fmt.Sprintf("Incorrect locked balance. Expected 0.00 got %s", usdtBalance.Locked))
 		}
 	}
 }
