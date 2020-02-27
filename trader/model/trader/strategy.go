@@ -27,7 +27,9 @@ type Decision struct {
 	EventType DecisionType
 	Coin      string
 	Qty       decimal.Decimal
-	Val       decimal.Decimal
+	BuyConf   float64
+	SellConf  float64
+	DebugText string
 }
 
 type DecisionType string
@@ -46,13 +48,25 @@ type TradeRecord struct {
 	Value       decimal.Decimal
 	Transaction decimal.Decimal
 	Profit      decimal.Decimal
+	BuyConf     float64
+	SellConf    float64
+	DebugText   string
 }
 
 func (t *TradeRecord) ToString() string {
-	strRecord := fmt.Sprintf("## %s : (%s) - %s -- Qty:%s Value:%s$ Trans:%s$", t.Timestamp, t.Event, t.Coin,
-		t.Qty, t.Value, t.Transaction)
-	if t.Event != BUY {
-		strRecord += fmt.Sprintf(" Profit: %s$", t.Profit)
+	qty, _ := t.Qty.Float64()
+	value, _ := t.Value.Float64()
+	transaction, _ := t.Transaction.Float64()
+
+	strRecord := fmt.Sprintf("## %s : (%s) - %s -- Qty:%.4f Value:%.4f$ Trans:%.4f$", t.Timestamp, t.Event, t.Coin,
+		qty, value, transaction)
+	if t.Event == SELL {
+		profit, _ := t.Profit.Float64()
+		strRecord += fmt.Sprintf(" Profit: %.4f$", profit)
+	} else if t.Event == HOLD {
+		strRecord = fmt.Sprintf("## HOLD: Coin: %s BuyConfidence: %.2f/2 SellConfidence: %.2f/-2", t.Coin, t.BuyConf, t.SellConf)
+		strRecord += t.DebugText
 	}
+
 	return strRecord
 }

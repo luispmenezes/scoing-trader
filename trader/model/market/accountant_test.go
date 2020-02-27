@@ -17,7 +17,7 @@ func TestBuy(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = accountant.Buy("BTCUSDT", decimal.NewFromInt(2))
+	_, err = accountant.Buy("BTCUSDT", decimal.NewFromInt(2))
 
 	if err != nil {
 		t.Error(err)
@@ -46,7 +46,7 @@ func TestSell(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = accountant.Buy("BTCUSDT", decimal.NewFromInt(2))
+	_, err = accountant.Buy("BTCUSDT", decimal.NewFromInt(2))
 	if err != nil {
 		t.Error(err)
 	}
@@ -56,7 +56,7 @@ func TestSell(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = accountant.Buy("BTCUSDT", decimal.NewFromInt(2))
+	_, err = accountant.Buy("BTCUSDT", decimal.NewFromInt(2))
 	if err != nil {
 		t.Error(err)
 	}
@@ -69,7 +69,7 @@ func TestSell(t *testing.T) {
 		t.Error("Expected BTC balance 4, got ", accountant.AssetQty("BTCUSDT"))
 	}
 
-	err = accountant.Sell("BTCUSDT", decimal.NewFromInt(3))
+	_, _, err = accountant.Sell("BTCUSDT", decimal.NewFromInt(3))
 
 	if err != nil {
 		t.Error(err)
@@ -80,7 +80,7 @@ func TestSell(t *testing.T) {
 			len(accountant.Positions["BTCUSDT"]), accountant.Positions["BTCUSDT"][decimal.NewFromInt(20).String()]))
 	}
 
-	err = accountant.Sell("BTCUSDT", decimal.NewFromInt(1))
+	_, _, err = accountant.Sell("BTCUSDT", decimal.NewFromInt(1))
 	if err != nil {
 		t.Error(err)
 	}
@@ -103,12 +103,12 @@ func TestFee(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = accountant.Buy("BTCUSDT", decimal.NewFromInt(1))
+	_, err = accountant.Buy("BTCUSDT", decimal.NewFromInt(1))
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = accountant.Sell("BTCUSDT", decimal.NewFromInt(1))
+	_, _, err = accountant.Sell("BTCUSDT", decimal.NewFromInt(1))
 	if err != nil {
 		t.Error(err)
 	}
@@ -132,12 +132,12 @@ func TestPositionValue(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = accountant.Buy("BTCUSDT", decimal.NewFromInt(2))
+	_, err = accountant.Buy("BTCUSDT", decimal.NewFromInt(2))
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = accountant.Buy("ETHUSDT", decimal.NewFromInt(10))
+	_, err = accountant.Buy("ETHUSDT", decimal.NewFromInt(10))
 	if err != nil {
 		t.Error(err)
 	}

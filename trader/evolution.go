@@ -118,7 +118,7 @@ func (evo *Evolution) simulateGeneration(untestedSpecimens []Specimen) []Specime
 func (evo *Evolution) runSingleSimulation(specimen Specimen, predictions *[]predictor.Prediction, out chan<- Specimen, wg *sync.WaitGroup) {
 	defer wg.Done()
 	strategy := strategies.NewBasicWithMemoryStrategy(specimen.Config.ToSlice(), 10)
-	sim := NewSimulation(predictions, strategy, specimen.Config, evo.InitialBalance, evo.Fee, evo.Uncertainty, false)
+	sim := NewSimulation(predictions, strategy, specimen.Config, evo.InitialBalance, evo.Fee, evo.Uncertainty, false, false)
 	sim.Run()
 	specimen.Fitness = sim.Trader.Accountant.NetWorth()
 	out <- specimen

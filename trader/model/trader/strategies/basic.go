@@ -29,7 +29,7 @@ func (s *BasicStrategy) ComputeDecision(prediction predictor.Prediction, positio
 				EventType: trader.BUY,
 				Coin:      prediction.Coin,
 				Qty:       buyQty,
-				Val:       decimal.NewFromFloat(prediction.CloseValue),
+				BuyConf:   1,
 			}
 		}
 	}
@@ -47,7 +47,7 @@ func (s *BasicStrategy) ComputeDecision(prediction predictor.Prediction, positio
 						EventType: trader.SELL,
 						Coin:      prediction.Coin,
 						Qty:       sellQty,
-						Val:       decimalVal,
+						SellConf:  1,
 					}
 				}
 			}
@@ -59,7 +59,8 @@ func (s *BasicStrategy) ComputeDecision(prediction predictor.Prediction, positio
 			EventType: trader.HOLD,
 			Coin:      prediction.Coin,
 			Qty:       decimal.Zero,
-			Val:       decimal.Zero,
+			BuyConf:   (pred5 * s.Config.BuyPred5Mod) + (pred10 * s.Config.BuyPred10Mod) + (pred100 * s.Config.BuyPred100Mod),
+			SellConf:  (pred5 * s.Config.SellPred5Mod) + (pred10 * s.Config.SellPred10Mod) + (pred100 * s.Config.SellPred100Mod),
 		}
 	}
 

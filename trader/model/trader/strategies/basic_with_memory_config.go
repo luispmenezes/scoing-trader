@@ -15,15 +15,17 @@ type BasicWithMemoryConfig struct {
 	ProfitCap      float64
 	BuyQtyMod      float64
 	SellQtyMod     float64
+	SegTh          float64
+	HistSegTh      float64
 }
 
 func (c *BasicWithMemoryConfig) NumParams() int {
-	return 10
+	return 12
 }
 
 func (c *BasicWithMemoryConfig) ToSlice() []float64 {
 	return []float64{c.BuyPred5Mod, c.BuyPred10Mod, c.BuyPred100Mod, c.SellPred5Mod, c.SellPred10Mod, c.SellPred100Mod,
-		c.StopLoss, c.ProfitCap, c.BuyQtyMod, c.SellQtyMod}
+		c.StopLoss, c.ProfitCap, c.BuyQtyMod, c.SellQtyMod, c.SegTh, c.HistSegTh}
 }
 
 func (c *BasicWithMemoryConfig) FromSlice(slice []float64) {
@@ -37,6 +39,8 @@ func (c *BasicWithMemoryConfig) FromSlice(slice []float64) {
 	c.ProfitCap = slice[7]
 	c.BuyQtyMod = slice[8]
 	c.SellQtyMod = slice[9]
+	c.SegTh = slice[10]
+	c.HistSegTh = slice[11]
 }
 
 func (c *BasicWithMemoryConfig) ParamRanges() ([]float64, []float64) {
@@ -72,6 +76,12 @@ func (c *BasicWithMemoryConfig) ParamRanges() ([]float64, []float64) {
 	//SellQtyMod
 	min[9] = 0
 	max[9] = 1
+	//Segmentation Threshold
+	min[10] = 0
+	max[10] = 0.2
+	//History Segmentation Threshold
+	min[11] = 0
+	max[11] = 0.2
 
 	return min, max
 }

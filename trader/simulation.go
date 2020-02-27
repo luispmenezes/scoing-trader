@@ -20,13 +20,13 @@ type Simulation struct {
 }
 
 func NewSimulation(predictions *[]predictor.Prediction, strategy trader.Strategy, config trader.StrategyConfig, initialBalance decimal.Decimal, fee decimal.Decimal,
-	uncertainty float64, keepRecords bool) *Simulation {
+	uncertainty float64, keepRecords bool, keepOnlyTransactions bool) *Simulation {
 	marketEnt := market.NewSimulatedMarket(0, fee)
 	marketEnt.Deposit("USDT", initialBalance)
 	return &Simulation{
 		Predictions: predictions,
 		Trader: *trader.NewTrader(*market.NewAccountant(marketEnt, initialBalance, fee),
-			predictor.NewSimulatedPredictor(uncertainty), strategy, keepRecords),
+			predictor.NewSimulatedPredictor(uncertainty), strategy, keepRecords, keepOnlyTransactions),
 		Logging: keepRecords,
 	}
 }
@@ -56,19 +56,22 @@ func (sim *Simulation) Run() {
 			}
 
 			if pred.Timestamp.Minute() == 0 {
-				historyTrader[pred.Timestamp.Format("2006-01-02 15:04:05")] = []string{
-					fmt.Sprintf("%d", sim.Trader.Accountant.GetBalance()), fmt.Sprintf("%d", sim.Trader.Accountant.NetWorth())}
+				balance, _ := sim.Trader.Accountant.GetBalance().Float64()
+				nw, _ := sim.Trader.Accountant.NetWorth().Float64()
+				historyTrader[pred.Timestamp.Format("2006-01-02 15:04:05")] = []string{fmt.Sprintf("%.4f", balance), fmt.Sprintf("%.4f", nw)}
 
 				if _, exists := historyCoin[pred.Timestamp.Format("2006-01-02 15:04:05")]; !exists {
 					historyCoin[pred.Timestamp.Format("2006-01-02 15:04:05")] = make(map[string][]string)
 				}
 
-				historyCoin[pred.Timestamp.Format("2006-01-02 15:04:05")][pred.Coin] = []string{fmt.Sprintf("%f", pred.CloseValue),
-					fmt.Sprintf("%d", len(sim.Trader.Accountant.GetPositions(pred.Coin)))}
+				assetValue, _ := sim.Trader.Accountant.AssetValue(pred.Coin).Float64()
+
+				historyCoin[pred.Timestamp.Format("2006-01-02 15:04:05")][pred.Coin] = []string{fmt.Sprintf("%.4f", pred.CloseValue),
+					fmt.Sprintf("%.4f", assetValue)}
 			}
 		}
 
-		//sim.Trader.Accountant.SyncWithMarket()
+		sim.Trader.Accountant.SyncWithMarket()
 	}
 
 	if sim.Logging {
@@ -104,8 +107,8 @@ func (sim *Simulation) Run() {
 					entry = append(entry, historyCoin[timestamp][coin][0])
 					entry = append(entry, historyCoin[timestamp][coin][1])
 				} else {
-					entry = append(entry, "0")
-					entry = append(entry, "0")
+					entry = append(entry, "")
+					entry = append(entry, "")
 				}
 			}
 

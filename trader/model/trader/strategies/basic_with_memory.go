@@ -1,6 +1,7 @@
 package strategies
 
 import (
+	"fmt"
 	"github.com/shopspring/decimal"
 	"math"
 	"scoing-trader/trader/model/predictor"
@@ -9,18 +10,18 @@ import (
 
 type BasicWithMemoryStrategy struct {
 	Config             BasicWithMemoryConfig
-	PriceHistory       []float64
-	PredictionHistory5 []float64
-	DecisionHistory    []trader.DecisionType
+	PriceHistory       map[string][]float64
+	PredictionHistory5 map[string][]float64
+	DecisionHistory    map[string][]trader.DecisionType
 	HistoryLength      int
 }
 
 func NewBasicWithMemoryStrategy(slice []float64, historyLength int) *BasicWithMemoryStrategy {
 	basicWithMemoryStrategy := &BasicWithMemoryStrategy{
 		Config:             BasicWithMemoryConfig{},
-		PriceHistory:       make([]float64, 0),
-		PredictionHistory5: make([]float64, 0),
-		DecisionHistory:    make([]trader.DecisionType, 0),
+		PriceHistory:       make(map[string][]float64, 0),
+		PredictionHistory5: make(map[string][]float64, 0),
+		DecisionHistory:    make(map[string][]trader.DecisionType, 0),
 		HistoryLength:      historyLength,
 	}
 	basicWithMemoryStrategy.Config.FromSlice(slice)
@@ -36,12 +37,20 @@ func (s *BasicWithMemoryStrategy) ComputeDecision(prediction predictor.Predictio
 
 	var priceDelta, predDelta float64
 
-	if len(s.PriceHistory) >= s.HistoryLength {
-		priceDelta = s.historyGetPriceDelta()
-		predDelta = s.historyGetPred5Delta()
+	if len(s.PriceHistory[prediction.Coin]) >= s.HistoryLength {
+		priceDelta = s.historyGetPriceDelta(prediction.Coin)
+		predDelta = s.historyGetPred5Delta(prediction.Coin)
 	}
 
-	if len(s.PriceHistory) < s.HistoryLength || (s.historyGetDecisionCount(trader.BUY) <
+	debugText := "\n\tDecision History: "
+
+	for _, decision := range s.DecisionHistory[prediction.Coin] {
+		debugText += string(decision[0]) + " "
+	}
+
+	debugText += fmt.Sprintf("\n\tPriceDelta: %.2f Predicition Delta: %.2f", priceDelta, predDelta)
+
+	if len(s.PriceHistory[prediction.Coin]) < s.HistoryLength || (s.historyGetDecisionCount(prediction.Coin, trader.BUY) <
 		math.Round(float64(s.HistoryLength)/2) && priceDelta != -1 && predDelta != -1) {
 
 		if ((pred5 * s.Config.BuyPred5Mod) + (pred10 * s.Config.BuyPred10Mod) + (pred100 * s.Config.BuyPred100Mod)) > 2 {
@@ -50,39 +59,40 @@ func (s *BasicWithMemoryStrategy) ComputeDecision(prediction predictor.Predictio
 					EventType: trader.BUY,
 					Coin:      prediction.Coin,
 					Qty:       buyQty,
-					Val:       decimal.NewFromFloat(prediction.CloseValue),
+					BuyConf:   1,
+					DebugText: debugText,
 				}
 			}
 		}
 	}
 
-	if len(s.PriceHistory) < s.HistoryLength || (s.historyGetDecisionCount(trader.SELL) <
+	if len(s.PriceHistory[prediction.Coin]) < s.HistoryLength || (s.historyGetDecisionCount(prediction.Coin, trader.SELL) <
 		math.Round(float64(s.HistoryLength)/2) && priceDelta != 1 && predDelta != 1) {
 
-		if ((pred5 * s.Config.SellPred5Mod) + (pred10 * s.Config.SellPred10Mod) + (pred100 * s.Config.SellPred100Mod)) < -2 {
-			for val, qty := range positions {
-				decimalVal, _ := decimal.NewFromString(val)
-				currentProfit := decimal.NewFromInt(1).Sub(decimalVal.Div(decimal.NewFromFloat(prediction.CloseValue)).Mul(decimal.NewFromInt(1).Sub(fee)))
-				if (len(s.PriceHistory) < s.HistoryLength || (s.historyGetDecisionCount(trader.SELL) <
-					math.Round(float64(s.HistoryLength)/2) && priceDelta != 1 && predDelta != 1) &&
-					((pred5*s.Config.SellPred5Mod)+(pred10*s.Config.SellPred10Mod)+(pred100*s.Config.SellPred100Mod)) < -2 &&
-					currentProfit.LessThan(decimal.NewFromFloat(s.Config.StopLoss))) ||
-					currentProfit.GreaterThan(decimal.NewFromFloat(s.Config.ProfitCap)) {
-					if sellQty := s.SellSize(prediction, qty, coinValue); sellQty.GreaterThan(decimal.Zero) {
-						if sellDecision, exists := decisionMap[trader.SELL]; exists {
-							sellDecision.Qty = sellDecision.Qty.Add(sellQty)
-						} else {
-							decisionMap[trader.SELL] = trader.Decision{
-								EventType: trader.SELL,
-								Coin:      prediction.Coin,
-								Qty:       sellQty,
-								Val:       decimalVal,
-							}
+		for val, qty := range positions {
+			decimalVal, _ := decimal.NewFromString(val)
+			currentProfit := decimal.NewFromInt(1).Sub(decimalVal.Div(decimal.NewFromFloat(prediction.CloseValue)).Mul(decimal.NewFromInt(1).Sub(fee)))
+			if (len(s.PriceHistory) < s.HistoryLength || (s.historyGetDecisionCount(prediction.Coin, trader.SELL) <
+				math.Round(float64(s.HistoryLength)/2) && priceDelta != 1 && predDelta != 1) &&
+				((pred5*s.Config.SellPred5Mod)+(pred10*s.Config.SellPred10Mod)+(pred100*s.Config.SellPred100Mod)) < -2 &&
+				currentProfit.LessThan(decimal.NewFromFloat(s.Config.StopLoss))) ||
+				currentProfit.GreaterThan(decimal.NewFromFloat(s.Config.ProfitCap)) {
+				if sellQty := s.SellSize(prediction, qty, coinValue); sellQty.GreaterThan(decimal.Zero) {
+					if sellDecision, exists := decisionMap[trader.SELL]; exists {
+						sellDecision.Qty = sellDecision.Qty.Add(sellQty)
+					} else {
+						decisionMap[trader.SELL] = trader.Decision{
+							EventType: trader.SELL,
+							Coin:      prediction.Coin,
+							Qty:       sellQty,
+							SellConf:  1,
+							DebugText: debugText,
 						}
 					}
 				}
 			}
 		}
+
 	}
 
 	if len(decisionMap) == 0 {
@@ -90,7 +100,9 @@ func (s *BasicWithMemoryStrategy) ComputeDecision(prediction predictor.Predictio
 			EventType: trader.HOLD,
 			Coin:      prediction.Coin,
 			Qty:       decimal.Zero,
-			Val:       decimal.Zero,
+			BuyConf:   (pred5 * s.Config.BuyPred5Mod) + (pred10 * s.Config.BuyPred10Mod) + (pred100 * s.Config.BuyPred100Mod),
+			SellConf:  (pred5 * s.Config.SellPred5Mod) + (pred10 * s.Config.SellPred10Mod) + (pred100 * s.Config.SellPred100Mod),
+			DebugText: debugText,
 		}
 	}
 
@@ -99,7 +111,7 @@ func (s *BasicWithMemoryStrategy) ComputeDecision(prediction predictor.Predictio
 		decisionTypes = append(decisionTypes, d)
 	}
 
-	s.addToHistory(prediction.CloseValue, prediction.Pred5, decisionTypes)
+	s.addToHistory(prediction.Coin, prediction.CloseValue, prediction.Pred5, decisionTypes)
 
 	return decisionMap
 }
@@ -140,43 +152,43 @@ func (s *BasicWithMemoryStrategy) computePredictors(predValue5 float64, predValu
 	pred10 := 0.0
 	pred100 := 0.0
 
-	if predValue5 > 0.01 {
+	if predValue5 > s.Config.SegTh {
 		pred5 = 1
-	} else if predValue5 < -0.01 {
+	} else if predValue5 < -s.Config.SegTh {
 		pred5 = -1
 	}
 
-	if predValue10 > 0.01 {
+	if predValue10 > s.Config.SegTh {
 		pred10 = 1
-	} else if predValue10 < -0.01 {
+	} else if predValue10 < -s.Config.SegTh {
 		pred10 = -1
 	}
 
-	if predValue100 > 0.01 {
+	if predValue100 > s.Config.SegTh {
 		pred100 = 1
-	} else if predValue100 < -0.01 {
+	} else if predValue100 < -s.Config.SegTh {
 		pred100 = -1
 	}
 
 	return pred5, pred10, pred100
 }
 
-func (s *BasicWithMemoryStrategy) addToHistory(price float64, pred5 float64, decisionTypes []trader.DecisionType) {
-	s.PriceHistory = append([]float64{price}, s.PriceHistory...)
-	s.PredictionHistory5 = append([]float64{pred5}, s.PredictionHistory5...)
-	s.DecisionHistory = append(decisionTypes, s.DecisionHistory...)
+func (s *BasicWithMemoryStrategy) addToHistory(coin string, price float64, pred5 float64, decisionTypes []trader.DecisionType) {
+	s.PriceHistory[coin] = append([]float64{price}, s.PriceHistory[coin]...)
+	s.PredictionHistory5[coin] = append([]float64{pred5}, s.PredictionHistory5[coin]...)
+	s.DecisionHistory[coin] = append(decisionTypes, s.DecisionHistory[coin]...)
 
-	if len(s.PriceHistory) > s.HistoryLength {
-		s.PriceHistory = s.PriceHistory[:s.HistoryLength]
-		s.PredictionHistory5 = s.PredictionHistory5[:s.HistoryLength]
-		s.DecisionHistory = s.DecisionHistory[:s.HistoryLength]
+	if len(s.PriceHistory[coin]) > s.HistoryLength {
+		s.PriceHistory[coin] = s.PriceHistory[coin][:s.HistoryLength]
+		s.PredictionHistory5[coin] = s.PredictionHistory5[coin][:s.HistoryLength]
+		s.DecisionHistory[coin] = s.DecisionHistory[coin][:s.HistoryLength]
 	}
 }
 
-func (s *BasicWithMemoryStrategy) historyGetDecisionCount(decisionType trader.DecisionType) float64 {
+func (s *BasicWithMemoryStrategy) historyGetDecisionCount(coin string, decisionType trader.DecisionType) float64 {
 	total := 0.0
 
-	for _, dec := range s.DecisionHistory {
+	for _, dec := range s.DecisionHistory[coin] {
 		if dec == decisionType {
 			total++
 		}
@@ -185,24 +197,24 @@ func (s *BasicWithMemoryStrategy) historyGetDecisionCount(decisionType trader.De
 	return total
 }
 
-func (s *BasicWithMemoryStrategy) historyGetPriceDelta() float64 {
-	absDelta := (s.PriceHistory[len(s.PriceHistory)-1] - s.PriceHistory[0]) / math.Abs(s.PriceHistory[0])
+func (s *BasicWithMemoryStrategy) historyGetPriceDelta(coin string) float64 {
+	absDelta := (s.PriceHistory[coin][len(s.PriceHistory[coin])-1] - s.PriceHistory[coin][0]) / math.Abs(s.PriceHistory[coin][0])
 
-	if absDelta > 0.05 {
+	if absDelta > s.Config.HistSegTh {
 		return 1
-	} else if absDelta < -0.05 {
+	} else if absDelta < -s.Config.HistSegTh {
 		return -1
 	} else {
 		return 0
 	}
 }
 
-func (s *BasicWithMemoryStrategy) historyGetPred5Delta() float64 {
-	absDelta := (s.PredictionHistory5[len(s.PredictionHistory5)-1] - s.PredictionHistory5[0]) / math.Abs(s.PredictionHistory5[0])
+func (s *BasicWithMemoryStrategy) historyGetPred5Delta(coin string) float64 {
+	absDelta := (s.PredictionHistory5[coin][len(s.PredictionHistory5[coin])-1] - s.PredictionHistory5[coin][0]) / math.Abs(s.PredictionHistory5[coin][0])
 
-	if absDelta > 0.05 {
+	if absDelta > s.Config.HistSegTh {
 		return 1
-	} else if absDelta < -0.05 {
+	} else if absDelta < -s.Config.HistSegTh {
 		return -1
 	} else {
 		return 0

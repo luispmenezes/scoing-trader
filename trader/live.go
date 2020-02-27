@@ -26,16 +26,16 @@ var coins = []string{"BTCUSDT", "ETHUSDT", "BNBUSDT", "LTCUSDT", "XRPUSDT"}
 
 func NewLive(serverHost string, serverPort string, timeout int) *Live {
 	config := &strategies.BasicWithMemoryConfig{
-		BuyPred5Mod:    1.064582988619854,
-		BuyPred10Mod:   0.7180806459020486,
-		BuyPred100Mod:  2.6448109927782526,
-		SellPred5Mod:   0.394767696058713,
-		SellPred10Mod:  0.5402994113125981,
-		SellPred100Mod: 2.344851136724181,
-		StopLoss:       -0.003961030174404023,
-		ProfitCap:      0.025477934544296355,
-		BuyQtyMod:      0.8662148823175331,
-		SellQtyMod:     0.9051123877251703,
+		BuyPred5Mod:    1.5826542126842869,
+		BuyPred10Mod:   2.3353679986593985,
+		BuyPred100Mod:  2.3600812220243452,
+		SellPred5Mod:   1.1962528097006584,
+		SellPred10Mod:  0.5451899361190929,
+		SellPred100Mod: 2.9358504210266423,
+		StopLoss:       -0.005360676471960717,
+		ProfitCap:      0.004446293648514038,
+		BuyQtyMod:      0.6436398952398891,
+		SellQtyMod:     0.9751410320690478,
 	}
 
 	marketEnt := market.NewSimulatedMarket(0, decimal.NewFromFloat(0.001))
@@ -48,7 +48,7 @@ func NewLive(serverHost string, serverPort string, timeout int) *Live {
 		Trader: *trader.NewTrader(
 			*market.NewAccountant(marketEnt, decimal.NewFromInt(1000), decimal.NewFromFloat(0.001)),
 			predictor.NewSimulatedPredictor(0),
-			strategies.NewBasicWithMemoryStrategy(config.ToSlice(), 10), true),
+			strategies.NewBasicWithMemoryStrategy(config.ToSlice(), 10), true, false),
 	}
 }
 
@@ -105,10 +105,10 @@ func (l *Live) Run() {
 				l.Trader.ProcessData(coin)
 
 				if len(l.Trader.Records) != numDecisions {
-					for i := int(math.Max(0, float64(numDecisions-1))); i < len(l.Trader.Records); i++ {
+					for i := int(math.Max(0, float64(numDecisions))); i < len(l.Trader.Records); i++ {
 						log.Println(l.Trader.Records[i].ToString())
+						numDecisions++
 					}
-					numDecisions = len(l.Trader.Records)
 				}
 				lastTimestamps[coin] = prediction.Timestamp
 			}

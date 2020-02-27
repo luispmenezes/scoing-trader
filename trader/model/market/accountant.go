@@ -31,16 +31,16 @@ func NewAccountant(market model.Market, initialBalance decimal.Decimal, fee deci
 	}
 }
 
-func (a *Accountant) Buy(coin string, quantity decimal.Decimal) error {
+func (a *Accountant) Buy(coin string, quantity decimal.Decimal) (decimal.Decimal, error) {
 
 	if quantity.LessThan(decimal.Zero) {
-		return errors.New(fmt.Sprintf("negative buy quantity %s", quantity))
+		return decimal.Zero, errors.New(fmt.Sprintf("negative buy quantity %s", quantity))
 	}
 
 	transactionValue := a.AssetValues[coin].Mul(quantity).Mul(a.Fee.Add(decimal.NewFromInt(1)))
 
 	if transactionValue.GreaterThan(a.Balance) {
-		return errors.New(fmt.Sprintf("buy transaction: %s exceeds balance: %s", transactionValue, a.Balance))
+		return decimal.Zero, errors.New(fmt.Sprintf("buy transaction: %s exceeds balance: %s", transactionValue, a.Balance))
 	}
 
 	buyOrder := model.OrderRequest{
@@ -52,7 +52,7 @@ func (a *Accountant) Buy(coin string, quantity decimal.Decimal) error {
 	}
 
 	if err := a.Market.NewOrder(buyOrder); err != nil {
-		return err
+		return decimal.Zero, err
 	}
 
 	a.Balance = a.Balance.Sub(transactionValue)
@@ -73,16 +73,16 @@ func (a *Accountant) Buy(coin string, quantity decimal.Decimal) error {
 		a.Assets[coin] = a.Assets[coin].Add(quantity)
 	}
 
-	return nil
+	return a.AssetValues[coin].Mul(quantity.Mul(decimal.NewFromInt(1).Add(a.Fee))), nil
 }
 
-func (a *Accountant) Sell(coin string, quantity decimal.Decimal) error {
+func (a *Accountant) Sell(coin string, quantity decimal.Decimal) (decimal.Decimal, decimal.Decimal, error) {
 	if quantity.LessThan(decimal.Zero) {
-		return errors.New(fmt.Sprintf("negative buy quantity %s", quantity))
+		return decimal.Zero, decimal.Zero, errors.New(fmt.Sprintf("negative buy quantity %s", quantity))
 	}
 
 	if quantity.GreaterThan(a.Assets[coin]) {
-		return errors.New(fmt.Sprintf("sell quantity: %s exceeds available: %s", quantity, a.Assets[coin]))
+		return decimal.Zero, decimal.Zero, errors.New(fmt.Sprintf("sell quantity: %s exceeds available: %s", quantity, a.Assets[coin]))
 	}
 
 	sellOrder := model.OrderRequest{
@@ -94,7 +94,7 @@ func (a *Accountant) Sell(coin string, quantity decimal.Decimal) error {
 	}
 
 	if err := a.Market.NewOrder(sellOrder); err != nil {
-		return err
+		return decimal.Zero, decimal.Zero, err
 	}
 
 	positionBuyValues := make([]string, 0, len(a.Positions[coin]))
@@ -110,10 +110,13 @@ func (a *Accountant) Sell(coin string, quantity decimal.Decimal) error {
 	})
 
 	remainingQty := quantity
+	var positionTransactionSum decimal.Decimal
 
 	for _, pbv := range positionBuyValues {
 		if remainingQty.GreaterThanOrEqual(a.Positions[coin][pbv]) {
 			remainingQty = remainingQty.Sub(a.Positions[coin][pbv])
+			pbvDecimal, _ := decimal.NewFromString(pbv)
+			positionTransactionSum = positionTransactionSum.Add(a.Positions[coin][pbv].Mul(pbvDecimal).Mul(decimal.NewFromInt(1).Add(a.Fee)))
 			delete(a.Positions[coin], pbv)
 		} else {
 			a.Positions[coin][pbv] = a.Positions[coin][pbv].Sub(remainingQty)
@@ -125,12 +128,11 @@ func (a *Accountant) Sell(coin string, quantity decimal.Decimal) error {
 	}
 
 	a.Assets[coin] = a.Assets[coin].Sub(quantity)
+	transaction := a.AssetValues[coin].Mul(quantity.Mul(decimal.NewFromInt(1).Sub(a.Fee)))
+	profit := transaction.Sub(positionTransactionSum)
+	a.Balance = a.Balance.Add(transaction)
 
-	currentValue := a.AssetValues[coin]
-
-	a.Balance = a.Balance.Add(currentValue.Mul(quantity.Mul(decimal.NewFromInt(1).Sub(a.Fee))))
-
-	return nil
+	return transaction, profit, nil
 }
 
 func (a *Accountant) UpdateAssetValue(coin string, value decimal.Decimal, timestamp time.Time) error {
@@ -179,7 +181,10 @@ func (a *Accountant) AssetValue(asset string) decimal.Decimal {
 }
 
 func (a *Accountant) ToString() string {
-	walletStr := fmt.Sprintf(">> NW:%s Balance:%s |", a.NetWorth(), a.GetBalance())
+	nw, _ := a.NetWorth().Float64()
+	balance, _ := a.GetBalance().Float64()
+
+	walletStr := fmt.Sprintf(">> NW:%.4f Balance:%.4f |", nw, balance)
 
 	var coinList []string
 
@@ -190,8 +195,10 @@ func (a *Accountant) ToString() string {
 	sort.Strings(coinList)
 
 	for _, coin := range coinList {
-		walletStr += fmt.Sprintf(" %s #%d Total:%s$(%s%%) |", coin, len(a.Positions[coin]),
-			a.AssetValue(coin), a.AssetValue(coin).Div(a.NetWorth().Mul(decimal.NewFromInt(100))))
+		assetValue, _ := a.AssetValue(coin).Float64()
+		assetPercentage, _ := a.AssetValue(coin).Div(a.NetWorth().Mul(decimal.NewFromInt(100))).Float64()
+		walletStr += fmt.Sprintf(" %s #%d Total:%.4f$(%4.f%%) |", coin, len(a.Positions[coin]),
+			assetValue, assetPercentage)
 	}
 
 	return walletStr
@@ -204,7 +211,7 @@ func (a *Accountant) GetTimeStamp() int64 {
 func (a *Accountant) SyncWithMarket() {
 	marketBalance, err := a.Market.Balance("USDT")
 
-	if err == nil && a.Balance != marketBalance.Free {
+	if err == nil && !a.Balance.Equal(marketBalance.Free) {
 		panic(fmt.Sprintf("Incoherent balance Acc:%s Market:%s", a.Balance, marketBalance.Free))
 	}
 }

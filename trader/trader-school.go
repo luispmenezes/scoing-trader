@@ -60,16 +60,17 @@ func TrainingData(serverEndpoint string, startTime time.Time, endTime time.Time,
 
 func RunSingleSim() {
 	conf := strategies.BasicWithMemoryConfig{
-		BuyPred5Mod:    1.064582988619854,
-		BuyPred10Mod:   0.7180806459020486,
-		BuyPred100Mod:  2.6448109927782526,
-		SellPred5Mod:   0.394767696058713,
-		SellPred10Mod:  0.5402994113125981,
-		SellPred100Mod: 2.344851136724181,
-		StopLoss:       -0.003961030174404023,
-		ProfitCap:      0.025477934544296355,
-		BuyQtyMod:      0.8662148823175331,
-		SellQtyMod:     0.9051123877251703,
+		BuyPred5Mod:    1.3860752635101572,
+		BuyPred10Mod:   1.0935943068552074,
+		BuyPred100Mod:  2.190686193884439,
+		SellPred5Mod:   0.24402009860113624,
+		SellPred10Mod:  0.2904495712171977,
+		SellPred100Mod: 1.7415275540604973,
+		StopLoss:       -0.1852535208884151,
+		ProfitCap:      0.23159283671436004,
+		BuyQtyMod:      0.055143393944428895,
+		SellQtyMod:     0,
+		SegTh:          0,
 	}
 
 	var _, err = os.Stat("trader.log")
@@ -81,31 +82,36 @@ func RunSingleSim() {
 		panic(err)
 	}
 	log.SetOutput(logFile)
-	strategy := strategies.NewBasicWithMemoryStrategy(conf.ToSlice(), 10)
 
-	for i := 0; i < 5; i++ {
+	strategy := strategies.NewBasicWithMemoryStrategy(conf.ToSlice(), 10)
+	simulation := NewSimulation(&predictions, strategy, &conf, decimal.NewFromInt(1000), decimal.NewFromFloat(0.001), 0, true, false)
+	simulation.Run()
+
+	fmt.Println(simulation.Trader.Accountant.NetWorth().String() + "$")
+
+	/*for i := 0; i < 5; i++ {
 		simulation := NewSimulation(&predictions, strategy, &conf, decimal.NewFromInt(1000), decimal.NewFromFloat(0.001), 0, true)
 		simulation.Run()
 
 		fmt.Println(simulation.Trader.Accountant.NetWorth().String() + "$")
 	}
 	conf2 := strategies.BasicConfig{
-		BuyPred5Mod:    1.064582988619854,
-		BuyPred10Mod:   0.7180806459020486,
+		BuyPred5Mod:    1.5940533413689444,
+		BuyPred10Mod:   1.6265337296196787,
 		BuyPred100Mod:  2.6448109927782526,
-		SellPred5Mod:   0.394767696058713,
-		SellPred10Mod:  0.5402994113125981,
-		SellPred100Mod: 2.344851136724181,
+		SellPred5Mod:   1.1962528097006584,
+		SellPred10Mod:  2.250716035097317,
+		SellPred100Mod: 2.9358504210266423,
 		StopLoss:       -0.003961030174404023,
-		ProfitCap:      0.025477934544296355,
-		BuyQtyMod:      0.8662148823175331,
-		SellQtyMod:     0.9051123877251703,
+		ProfitCap:      0.010777727359352375,
+		BuyQtyMod:      0.7042771619721528,
+		SellQtyMod:     0.9751410320690478,
 	}
 	strategy2 := strategies.NewBasicStrategy(conf2.ToSlice())
 	simulation2 := NewSimulation(&predictions, strategy2, &conf2, decimal.NewFromInt(1000), decimal.NewFromFloat(0.001), 0, true)
 	simulation2.Run()
 
-	fmt.Println(simulation2.Trader.Accountant.NetWorth().String() + "$  <--- Sem MEM")
+	fmt.Println(simulation2.Trader.Accountant.NetWorth().String() + "$  <--- Sem MEM")*/
 }
 
 func RunEvolution() {
@@ -117,9 +123,9 @@ func RunEvolution() {
 		GenerationSize: 200,
 		NumGenerations: 10,
 		MutationRate:   0.4,
-		StartingPoint: []float64{1.064582988619854, 0.7180806459020486, 2.6448109927782526, 0.394767696058713,
-			0.5402994113125981, 2.344851136724181, -0.003961030174404023, 0.025477934544296355, 0.8662148823175331,
-			0.9051123877251703},
+		StartingPoint: []float64{1.3860752635101572, 1.0935943068552074, 2.190686193884439, 0.24402009860113624,
+			0.2904495712171977, 1.7415275540604973, -0.1852535208884151, 0.23159283671436004, 0.055143393944428895,
+			0.5355718912365585, 0.001, 0.05},
 	}
 
 	log.Println("Starting Evo...")
@@ -141,7 +147,7 @@ func RunEvolution() {
 	log.SetOutput(logFile)
 
 	strategy := strategies.NewBasicWithMemoryStrategy(result.Config.ToSlice(), 10)
-	simulation := NewSimulation(&predictions, strategy, result.Config, decimal.NewFromInt(1000), decimal.NewFromFloat(0.001), 0, true)
+	simulation := NewSimulation(&predictions, strategy, result.Config, decimal.NewFromInt(1000), decimal.NewFromFloat(0.001), 0, true, false)
 	simulation.Run()
 
 	log.Println(simulation.Trader.Accountant.NetWorth())
