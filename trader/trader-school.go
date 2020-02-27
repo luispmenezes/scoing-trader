@@ -60,17 +60,18 @@ func TrainingData(serverEndpoint string, startTime time.Time, endTime time.Time,
 
 func RunSingleSim() {
 	conf := strategies.BasicWithMemoryConfig{
-		BuyPred5Mod:    1.3860752635101572,
-		BuyPred10Mod:   1.0935943068552074,
-		BuyPred100Mod:  2.190686193884439,
-		SellPred5Mod:   0.24402009860113624,
-		SellPred10Mod:  0.2904495712171977,
-		SellPred100Mod: 1.7415275540604973,
-		StopLoss:       -0.1852535208884151,
-		ProfitCap:      0.23159283671436004,
-		BuyQtyMod:      0.055143393944428895,
-		SellQtyMod:     0,
-		SegTh:          0,
+		BuyPred5Mod:    1.2079495905208983,
+		BuyPred10Mod:   1.2314340651251743,
+		BuyPred100Mod:  2.639287803446922,
+		SellPred5Mod:   0.7310100033627728,
+		SellPred10Mod:  2.4236266048303667,
+		SellPred100Mod: 0.971248749628451,
+		StopLoss:       -0.24754584132282575,
+		ProfitCap:      0.09154362564165196,
+		BuyQtyMod:      0.4571151261645299,
+		SellQtyMod:     0.4373028907049203,
+		SegTh:          0.02140330866341518,
+		HistSegTh:      0.06870754931936505,
 	}
 
 	var _, err = os.Stat("trader.log")
@@ -123,9 +124,9 @@ func RunEvolution() {
 		GenerationSize: 200,
 		NumGenerations: 10,
 		MutationRate:   0.4,
-		StartingPoint: []float64{1.3860752635101572, 1.0935943068552074, 2.190686193884439, 0.24402009860113624,
-			0.2904495712171977, 1.7415275540604973, -0.1852535208884151, 0.23159283671436004, 0.055143393944428895,
-			0.5355718912365585, 0.001, 0.05},
+		StartingPoint: []float64{0.9668821395093679, 2.7138169720897705, 2.639287803446922, 1.0940385580770726,
+			1.6007641962561916, 0.8169274098545057, -0.22309816719590436, 0.21838016983605293, 0.44771076616692107,
+			0.4373028907049203, 0.02140330866341518, 0.16750974746124225},
 	}
 
 	log.Println("Starting Evo...")
@@ -146,7 +147,7 @@ func RunEvolution() {
 	}
 	log.SetOutput(logFile)
 
-	strategy := strategies.NewBasicWithMemoryStrategy(result.Config.ToSlice(), 10)
+	strategy := strategies.NewBasicWithMemoryStrategy(result.Config.ToSlice(), 5)
 	simulation := NewSimulation(&predictions, strategy, result.Config, decimal.NewFromInt(1000), decimal.NewFromFloat(0.001), 0, true, false)
 	simulation.Run()
 

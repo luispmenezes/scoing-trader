@@ -25,7 +25,7 @@ type Evolution struct {
 }
 
 type Specimen struct {
-	Fitness decimal.Decimal
+	Fitness float64
 	Config  trader.StrategyConfig
 }
 
@@ -48,7 +48,7 @@ func (evo *Evolution) Run() Specimen {
 
 		specimenPool = append(specimenPool,
 			Specimen{
-				Fitness: decimal.Zero,
+				Fitness: 0.0,
 				Config:  &config,
 			})
 	}
@@ -57,13 +57,13 @@ func (evo *Evolution) Run() Specimen {
 		testedSpecimens := evo.simulateGeneration(specimenPool)
 		newCandidates := evo.selectCandidates(testedSpecimens, 2)
 
-		log.Printf("Generation %d Fitness: %s", i, newCandidates[0].Fitness)
+		log.Printf("Generation %d Fitness: %.4f", i, newCandidates[0].Fitness)
 		log.Println(newCandidates[0].Config.ToSlice())
 
-		if len(candidates) == 0 || newCandidates[0].Fitness.GreaterThan(candidates[0].Fitness) {
+		if len(candidates) == 0 || newCandidates[0].Fitness > candidates[0].Fitness {
 			candidates = newCandidates
 		} else {
-			log.Printf("New Generation worse than overall best (%s)", candidates[0].Fitness)
+			log.Printf("New Generation worse than overall best (%.4f)", candidates[0].Fitness)
 		}
 
 		specimenPool = evo.breed(candidates)
@@ -89,7 +89,7 @@ func (evo *Evolution) breed(candidates []Specimen) []Specimen {
 
 		newGeneration = append(newGeneration,
 			Specimen{
-				Fitness: decimal.Zero,
+				Fitness: 0.0,
 				Config:  child,
 			})
 	}
@@ -120,13 +120,14 @@ func (evo *Evolution) runSingleSimulation(specimen Specimen, predictions *[]pred
 	strategy := strategies.NewBasicWithMemoryStrategy(specimen.Config.ToSlice(), 10)
 	sim := NewSimulation(predictions, strategy, specimen.Config, evo.InitialBalance, evo.Fee, evo.Uncertainty, false, false)
 	sim.Run()
-	specimen.Fitness = sim.Trader.Accountant.NetWorth()
+	nw, _ := sim.Trader.Accountant.NetWorth().Float64()
+	specimen.Fitness = nw
 	out <- specimen
 }
 
 func (evo *Evolution) selectCandidates(specimens []Specimen, numCandidates int) []Specimen {
 	sort.Slice(specimens, func(i, j int) bool {
-		return specimens[i].Fitness.GreaterThan(specimens[j].Fitness)
+		return specimens[i].Fitness > specimens[j].Fitness
 	})
 	return specimens[0:numCandidates]
 }

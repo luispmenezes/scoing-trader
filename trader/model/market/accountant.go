@@ -120,6 +120,7 @@ func (a *Accountant) Sell(coin string, quantity decimal.Decimal) (decimal.Decima
 			delete(a.Positions[coin], pbv)
 		} else {
 			a.Positions[coin][pbv] = a.Positions[coin][pbv].Sub(remainingQty)
+			positionTransactionSum = positionTransactionSum.Add(a.Positions[coin][pbv].Mul(remainingQty).Mul(decimal.NewFromInt(1).Add(a.Fee)))
 			remainingQty = decimal.Zero
 		}
 		if remainingQty.IsZero() {
